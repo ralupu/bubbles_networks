@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 #%%
-bubble_res = pd.read_excel('data/ResultResults_ro_bet_bubbles.xlsx', sheet_name='Breakdowns')
+bubble_res = pd.read_excel('data_ro/ResultResults_ro_bet_bubbles.xlsx', sheet_name='Breakdowns')
 #%%
 # bubble_res.describe()
 #%%

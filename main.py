@@ -11,7 +11,7 @@ import seaborn as sns
 import pickle
 from datetime import datetime
 
-bubble_res = pd.read_excel('data/ResultResults_ro_bet_bubbles.xlsx', sheet_name='Breakdowns')
+bubble_res = pd.read_excel('data_ro/ResultResults_ro_bet_bubbles.xlsx', sheet_name='Breakdowns')
 bubble_res = bubble_res[bubble_res['Duration'] > 20]
 bubble_res = bubble_res[bubble_res['Duration'] < 100]
 
@@ -20,16 +20,16 @@ companies_only_one_bubble = list(b_vc[b_vc==1].index.values)
 bubble_res = bubble_res[~bubble_res['Firm'].isin(companies_only_one_bubble)]
 
 
-DF_bubble = pd.read_excel('data/ResultResults_ro_bet_bubbles.xlsx', sheet_name='BUB (CVM= WB, CVQ=95%, L=0)')
+DF_bubble = pd.read_excel('data_ro/ResultResults_ro_bet_bubbles.xlsx', sheet_name='BUB (CVM= WB, CVQ=95%, L=0)')
 # DF_bubble.index = pd.to_datetime(DF_bubble['Date'], format = '%d/%m/%Y')
 
-DF_boom = pd.read_excel('data/ResultResults_ro_bet_bubbles.xlsx', sheet_name='BMPH (CVM= WB, CVQ=95%, L=0)')
+DF_boom = pd.read_excel('data_ro/ResultResults_ro_bet_bubbles.xlsx', sheet_name='BMPH (CVM= WB, CVQ=95%, L=0)')
 # DF_boom.index = pd.to_datetime(DF_boom['Date'], format = '%d/%m/%Y')
 
-DF_burst = pd.read_excel('data/ResultResults_ro_bet_bubbles.xlsx', sheet_name='BRPH (CVM= WB, CVQ=95%, L=0)')
+DF_burst = pd.read_excel('data_ro/ResultResults_ro_bet_bubbles.xlsx', sheet_name='BRPH (CVM= WB, CVQ=95%, L=0)')
 # DF_burst.index = pd.to_datetime(DF_burst['Date'], format = '%d/%m/%Y')
 
-DF_dcovar = pd.read_excel('data/ResultResults_ro_bet_covars.xlsx', sheet_name='Delta CoVaR (K=95%)')
+DF_dcovar = pd.read_excel('data_ro/ResultResults_ro_bet_covars.xlsx', sheet_name='Delta CoVaR (K=95%)')
 
 
 # DF_dcovar.index = pd.to_datetime(DF_dcovar['Date'], format = '%d/%m/%Y')
