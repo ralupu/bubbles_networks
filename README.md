@@ -114,6 +114,3 @@ If using this code for research, please cite:
 
 ---
 
-## Contact
-
-For questions, contact [Your Name](mailto:your.email@example.com).
