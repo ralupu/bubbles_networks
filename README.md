@@ -97,20 +97,5 @@ Model performance charts will be saved in `figures/` with filenames encoding you
 - **Motif-based and graph resilience metrics** to further analyze market fragility.
 - **Integration of additional financial features or alternative graph constructions** (correlation, Granger, etc.)
 
----
 
-## Credits & Citation
-
-If using this code for research, please cite:
-
-```
-@article{YOURPAPER2025,
-  title={Dynamic Bubble Networks and Systemic Risk Forecasting},
-  author={Radu et al.},
-  journal={Working paper / submitted},
-  year={2025}
-}
-```
-
----
 
