@@ -30,3 +30,6 @@ Thumbs.db
 
 # Data artifacts (keep tracked files explicitly if needed)
 *.pkl
+
+# Derived figures
+figures/tgnn_forecast_performance_*.png
