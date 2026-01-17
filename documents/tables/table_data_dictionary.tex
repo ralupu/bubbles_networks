@@ -1,0 +1,17 @@
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{p{1.2cm} p{5.5cm} p{4.3cm} p{4.5cm}}
+\hline
+Dataset & File (relative path) & Sheet & Notes \\
+\hline
+ro & \texttt{data/ro/ResultResults\_ro\_bet\_bubbles.xlsx} & Breakdowns & Start/Peak/End are integer indices mapped to calendar dates using the BUB sheet. \\
+ro & \texttt{data/ro/ResultResults\_ro\_bet\_bubbles.xlsx} & BUB (CVM= WB, CVQ=95\%, L=0) & Provides date index mapping used by bubble episode tables. \\
+ro & \texttt{data/ro/ResultResults\_ro\_bet\_covars.xlsx} & Delta CoVaR (K=95\%) & Wide format: one column per firm with Delta CoVaR values. \\
+ro & \texttt{data/ro/ResultResults\_ro\_bet\_returns.xlsx} & (default) & Wide format returns used by FRM module (optional). \\
+stoxx600 & \texttt{data/stoxx600/ResultBubbles\_STOXX\_Mar2025.xlsx} & (unknown/varies) & Present for extension work; not required for minimal paper build. \\
+\hline
+\end{tabular}
+\caption{Data dictionary and provenance (high-level).}
+\label{tab:data_dictionary}
+\end{table}

@@ -1,0 +1,29 @@
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{l r r r r}
+\hline
+Network & Nodes & Edges & Density & Weak CCs \\
+\hline
+Aggregate & 19 & 245 & 0.7164 & 1 \\
+Temporal (avg) & 19.0 & 12.9 & 0.0377 & 15.8 \\
+\hline
+\end{tabular}
+\caption{Baseline network diagnostics (aggregate and temporal average).}
+\label{tab:network_summary}
+\end{table}
+
+\noindent\textbf{Top nodes (aggregate)}\\
+\begin{verbatim}
+in-degree: LPO:18; SNP:18; TEL:18; BRD:17; SNG:17; TGN:17; TLV:17; FP:14; PUR:14; FNC:13
+out-degree: FNC:18; ATB:16; TTS:16; FP:15; PUR:15; SNN:15; TLV:15; AP1:14; MED:14; TRP:14
+in-weighted-degree: TLV:2.53e+03; AP1:2.46e+03; LPO:2.18e+03; DIG:2.17e+03; FP:1.62e+03; PUR:1.58e+03; MED:1.47e+03; SNP:1.29e+03; SDP:1.24e+03; TEL:1.07e+03
+out-weighted-degree: FNC:3.4e+03; TTS:3.12e+03; ATB:2.76e+03; PUR:2.18e+03; DIG:1.57e+03; FP:1.5e+03; SDP:1.23e+03; TRP:1.17e+03; TLV:1.15e+03; AP1:980
+\end{verbatim}
+
+\noindent\textbf{Top nodes (temporal average)}\\
+\begin{verbatim}
+in-degree(avg): FP:1.23; TLV:1.21; AP1:1.13; TEL:1.07; SNP:1.02; LPO:0.985; DIG:0.838; PUR:0.78; BRD:0.758; TGN:0.564
+out-degree(avg): FNC:2.04; ATB:1.6; TTS:1.41; PUR:1.08; DIG:0.888; FP:0.828; TLV:0.768; MED:0.689; TRP:0.688; SDP:0.573
+weighted-degree(avg): FNC:2.18; FP:2.06; ATB:2.02; TLV:1.98; PUR:1.86; TTS:1.8; DIG:1.73; AP1:1.64; LPO:1.36; SNP:1.31
+\end{verbatim}

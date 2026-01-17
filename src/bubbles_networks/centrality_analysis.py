@@ -43,15 +43,18 @@ def run_centrality_analysis(
     temporal_graphs_pkl="results/temporal_graphs.pkl",
     out_dynamics="figures/centrality_dynamics.png",
     out_heatmap="figures/centrality_heatmap.png",
+    out_timeseries_csv="results/centrality_timeseries.csv",
 ):
     os.makedirs(os.path.dirname(out_dynamics) or ".", exist_ok=True)
     os.makedirs(os.path.dirname(out_heatmap) or ".", exist_ok=True)
+    os.makedirs(os.path.dirname(out_timeseries_csv) or ".", exist_ok=True)
 
     dates_df = pd.read_excel(bubble_file, sheet_name=date_sheet)
     dates_df["Date"] = pd.to_datetime(dates_df["Date"], format="%d/%m/%Y", errors="coerce")
 
     bubble_data = pd.read_excel(bubble_file, sheet_name=bubble_sheet)
-    company_mapping = {i: firm for i, firm in enumerate(bubble_data["Firm"].unique())}
+    firms = sorted(bubble_data["Firm"].dropna().unique())
+    company_mapping = {i: firm for i, firm in enumerate(firms)}
 
     with open(temporal_graphs_pkl, "rb") as f:
         temporal_graphs = pickle.load(f)
@@ -60,6 +63,13 @@ def run_centrality_analysis(
     if centrality_df.empty:
         print("No centrality data produced; skipping plots.")
         return
+
+    centrality_out = centrality_df.copy()
+    centrality_out["Date"] = pd.to_datetime(centrality_out["Date"], errors="coerce")
+    centrality_out = centrality_out.dropna(subset=["Date"])
+    centrality_out["Date"] = centrality_out["Date"].dt.strftime("%Y-%m-%d")
+    centrality_out = centrality_out.sort_values(["Date", "Company"])
+    centrality_out.to_csv(out_timeseries_csv, index=False)
 
     top_companies = centrality_df.groupby("Company")["Eigenvector"].mean().nlargest(5).index
     filtered_df = centrality_df[centrality_df["Company"].isin(top_companies)].copy()

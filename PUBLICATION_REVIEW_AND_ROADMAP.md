@@ -3,22 +3,23 @@
 This document is the single source of truth for: (1) what the paper is claiming, (2) what the code actually does, (3) what a harsh reviewer will challenge, and (4) the concrete milestones to reach a publishable, reproducible state.
 
 ## Next 3 actions
-1. Write `data/README.md` data dictionary for RO + STOXX600 (sheets, variables, provenance).
-2. Add validation checks for temporal graphs (edge density, invariants) and export tables to `documents/tables/`.
-3. Define forecasting protocol + baselines for TGNN (splits, leakage prevention, metrics).
+1. Robustness: sensitivity sweep for overlap definitions (thresholds/windows) and export deltas to `documents/`.
+2. Temporal diagnostics: add invariants + density/edge-count stability plots over time.
+3. FRM/TGNN: define leakage-free split protocol + baselines + metrics (runtime controls documented).
 
 ## Current status (from code reality)
 
 **What exists and runs today**
-- One-command paper build: `python scripts/make_paper.py --mode minimal` (exports paper figures and builds `documents/build/main.pdf`)
+- One-command paper build: `python scripts/make_paper.py --mode minimal` (exports paper figures/tables and builds `documents/build/main.pdf`)
+- Run planning/reporting: `python scripts/make_paper.py --dry-run` and `python scripts/make_paper.py --report` (writes `results/run_reports/*.md`)
 - Core pipeline entrypoint: `scripts/run_pipeline.py` (thin wrapper calling `src/bubbles_networks/`)
 - Core modules (active pipeline): `src/bubbles_networks/`
   - Bubble descriptive plots: `src/bubbles_networks/descriptive_bubbles.py`
   - Bubble overlap chart: `src/bubbles_networks/bubble_overlap_chart.py`
   - Aggregate overlap network: `src/bubbles_networks/network_aggregate.py`
-  - Temporal bubble graphs (PyG snapshots): `src/bubbles_networks/temporal_network.py` → `results/temporal_graphs.pkl` (artifact)
+  - Temporal bubble graphs (PyG snapshots): `src/bubbles_networks/temporal_network.py` -> `results/temporal_graphs.pkl` (artifact)
   - Centrality analytics + plots: `src/bubbles_networks/centrality_analysis.py`
-  - FRM (rolling quantile regression) temporal graphs: `src/bubbles_networks/frm_network.py` → `results/frm_graphs.pkl` (artifact)
+  - FRM (rolling quantile regression) temporal graphs: `src/bubbles_networks/frm_network.py` -> `results/frm_graphs.pkl` (artifact)
   - TGNN forecasting: `src/bubbles_networks/tgnn_forecasting.py` + wrapper `scripts/run_tgnn.py`
 - Paper source is modularized: `documents/main.tex` + `documents/sections/*.tex`
 - Paper assets live in `documents/figures/` and `documents/tables/` (stable filenames referenced by LaTeX)
@@ -34,13 +35,13 @@ This document is the single source of truth for: (1) what the paper is claiming,
 ## Harsh reviewer lens (what will be challenged)
 
 ### 1) Identification and causality
-- Why does “earlier bubble start → later bubble start” imply contagion rather than common shocks?
+- Why does "earlier bubble start -> later bubble start" imply contagion rather than common shocks?
 - Are edge directions robust to alternative bubble dating and overlap definitions?
 - How sensitive are results to the bubble detection model that produced the Excel inputs?
 
 ### 2) Network construction validity
 - Is the node universe stable over time (missing firms, universe changes)?
-- How are missing/irregular ΔCoVaR values handled (imputation and sign conventions)?
+- How are missing/irregular Delta CoVaR values handled (imputation and sign conventions)?
 - Does sparsity/density variation bias centrality measures?
 
 ### 3) Centrality and systemic risk interpretation
@@ -58,41 +59,43 @@ This document is the single source of truth for: (1) what the paper is claiming,
 
 ## Milestones
 
-### M0 — Repo + reproducibility foundation (complete)
+### M0 - Repo + reproducibility foundation (complete)
 - [x] `src/` package + `scripts/` entrypoints stable and documented
 - [x] Artifact policy implemented (`figures/`, `results/` untracked; `.gitkeep` present)
 - [x] Paper build command produces `documents/build/main.pdf` (`scripts/build_paper.ps1`)
 - [x] Documented environment setup (`requirements.txt` and `requirements-lite.txt`)
 
-### M1 — Data dictionary / provenance (RO + STOXX600) (in progress)
+### M1 - Data dictionary / provenance (RO + STOXX600) (in progress)
 - [x] Paper scaffolding + `make_paper` automation (stable `documents/figures/*` and modular `documents/sections/*`)
+- [x] Auto-exported data dictionary table (`documents/tables/table_data_dictionary.tex`)
 - [ ] `data/README.md` describing each dataset and sheet (RO + STOXX600)
-- [ ] Variable definitions (bubble episode tables; ΔCoVaR sheet; returns sheet)
+- [ ] Variable definitions (bubble episode tables; Delta CoVaR sheet; returns sheet)
 - [ ] Provenance/licensing statement (what can be shared)
 
-### M2 — Baseline bubble-overlap network construction + validation checks
+### M2 - Baseline bubble-overlap network construction + validation checks
+- [x] Baseline network diagnostics exported for paper (`documents/tables/table_network_summary.tex`, `documents/figures/fig_degree_distributions.png`)
+- [x] Snapshot dates strictly increasing (validated in `results/temporal_graphs.pkl`)
 - [ ] Sanity checks: bubble counts, overlap density over time, invariants (no self-loops, direction rule)
-- [ ] Rebuildable temporal graphs with configurable output paths
 - [ ] Minimal validation report (markdown + plots) exported for paper
 
-### M3 — Temporal network + centrality analytics robustness
+### M3 - Temporal network + centrality analytics robustness
+- [x] Centrality time series + paper exports (`results/centrality_timeseries.csv`, `documents/tables/table_centrality_summary.tex`, `documents/figures/fig_centrality_top_nodes.png`)
 - [ ] Sensitivity: edge weighting (binary vs overlap-days), sparsity filtering rules
-- [ ] Export centrality time series tables for paper
 
-### M4 — FRM dynamic networks (optional) + runtime controls
+### M4 - FRM dynamic networks (optional) + runtime controls
 - [ ] Runtime controls documented (window, threshold, parallelization, start date)
 - [ ] Diagnostics: edge density, coefficient distributions, stability across thresholds
 
-### M5 — TGNN forecasting protocol
+### M5 - TGNN forecasting protocol
 - [ ] Fixed task definition (target + horizon) and leakage-free split protocol
 - [ ] Baselines and metrics (MSE/MAE + rank metrics if needed)
 - [ ] Reproducible experiment runner (configs + seeds + outputs)
 
-### M6 — Main paper results + robustness suite
+### M6 - Main paper results + robustness suite
 - [ ] All claims map to code paths and exported artifacts
 - [ ] Robustness: bubble definitions, thresholds, time periods, seeds
 
-### M7 — Final paper polish + release tag
+### M7 - Final paper polish + release tag
 - [ ] Final LaTeX build reproducible, environment frozen, release tag created
 
 ## Reproducibility / one-command build
@@ -117,4 +120,4 @@ python scripts/make_paper.py --mode full --run-frm --run-tgnn
 - Repo restructure: `src/` + `scripts/`, artifact policy for `figures/` and `results/`, SD isolated to `legacy_sd/`.
 - Paper modularized into `documents/sections/*.tex` and stabilized paper asset paths under `documents/figures/` and `documents/tables/`.
 - Added `scripts/make_paper.py` to generate paper assets and build the PDF.
-
+- Added M2/M3 baseline validation exports (data dictionary, network diagnostics, centrality summaries) and `make_paper --dry-run/--report` discipline.

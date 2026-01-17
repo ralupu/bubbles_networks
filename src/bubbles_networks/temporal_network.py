@@ -37,9 +37,9 @@ def build_temporal_graphs(
     bubble_data["End_Date"] = bubble_data["End"].map(date_mapping)
     delta_covar_data["Date"] = pd.to_datetime(delta_covar_data["Date"], format="%d/%m/%Y", errors="coerce")
 
-    firms = bubble_data["Firm"].unique()
+    firms = sorted(bubble_data["Firm"].unique())
     temporal_graphs = []
-    time_series = [t for t in delta_covar_data["Date"].unique() if pd.notna(t)]
+    time_series = sorted([t for t in delta_covar_data["Date"].unique() if pd.notna(t)])
 
     for t in time_series:
         G = nx.DiGraph()
@@ -95,6 +95,9 @@ def build_temporal_graphs(
         if G.number_of_edges() >= int(min_edges):
             pyg_graph = from_networkx(G, group_node_attrs=list(node_feature_keys))
             temporal_graphs.append((pd.to_datetime(t), pyg_graph))
+
+    # Ensure snapshots are strictly increasing by date
+    temporal_graphs.sort(key=lambda x: x[0])
 
     with open(out_file, "wb") as f:
         pickle.dump(temporal_graphs, f)

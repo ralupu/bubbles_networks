@@ -15,6 +15,22 @@ Centrality measures (degree, betweenness, eigenvector) are computed per snapshot
   \item \texttt{documents/figures/fig\_centrality\_heatmap.png}
 \end{itemize}
 
+\subsection{Validation and diagnostics}
+
+We export baseline diagnostics for both the aggregate overlap network and the temporal snapshot graphs.
+These checks include: node/edge counts, density, weakly connected components, and edge-weight summaries.
+We also report top nodes by degree (and weighted degree) and export:
+\begin{itemize}
+  \item a summary table (\texttt{documents/tables/table\_network\_summary.tex})
+  \item degree distributions (\texttt{documents/figures/fig\_degree\_distributions.png})
+\end{itemize}
+
+For temporal centrality validation, we enforce strictly increasing snapshot dates and export per-node summary statistics (mean/std over time) plus a top-nodes table and a time-series figure for the top nodes:
+\begin{itemize}
+  \item \texttt{documents/tables/table\_centrality\_summary.tex}
+  \item \texttt{documents/figures/fig\_centrality\_top\_nodes.png}
+\end{itemize}
+
 \subsection{FRM dynamic networks (optional; heavier compute)}
 
 We optionally construct rolling-window FRM networks via quantile regression to estimate tail dependence.
@@ -24,4 +40,3 @@ This step can be computationally expensive and is exposed via a dedicated flag i
 
 We provide a TGNN forecasting pipeline (GConvGRU/A3TGCN/EvolveGCN variants) that predicts next-step eigenvector centrality targets.
 This module is optional and can be enabled for full builds.
-
