@@ -1,0 +1,32 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs / editors
+.idea/
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary / lock files (Office, etc.)
+~$*
+
+# Data artifacts (keep tracked files explicitly if needed)
+*.pkl
