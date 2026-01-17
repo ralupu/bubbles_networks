@@ -1,0 +1,27 @@
+\section{Methodology}
+
+\subsection{Bubble-overlap network construction}
+
+At each date $t$, we construct a directed graph where nodes represent firms and edges represent temporally ordered bubble overlap.
+An edge $i \rightarrow j$ is added when firm $i$ is in an active bubble and firm $j$ enters a bubble later within that overlap period.
+Node features include normalized $\Delta$CoVaR and bubble duration (days), with optional eigenvector centrality.
+
+\subsection{Temporal graphs and centrality analytics}
+
+The pipeline constructs a time series of PyTorch Geometric graph snapshots (\texttt{results/temporal\_graphs.pkl}).
+Centrality measures (degree, betweenness, eigenvector) are computed per snapshot and visualized as:
+\begin{itemize}
+  \item \texttt{documents/figures/fig\_centrality\_dynamics.png}
+  \item \texttt{documents/figures/fig\_centrality\_heatmap.png}
+\end{itemize}
+
+\subsection{FRM dynamic networks (optional; heavier compute)}
+
+We optionally construct rolling-window FRM networks via quantile regression to estimate tail dependence.
+This step can be computationally expensive and is exposed via a dedicated flag in the build script.
+
+\subsection{TGNN forecasting (optional)}
+
+We provide a TGNN forecasting pipeline (GConvGRU/A3TGCN/EvolveGCN variants) that predicts next-step eigenvector centrality targets.
+This module is optional and can be enabled for full builds.
+

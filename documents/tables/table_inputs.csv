@@ -1,0 +1,5 @@
+name,path,exists,size_bytes
+ro_bubbles,data/ro/ResultResults_ro_bet_bubbles.xlsx,True,449133
+ro_covars,data/ro/ResultResults_ro_bet_covars.xlsx,True,4099123
+ro_returns,data/ro/ResultResults_ro_bet_returns.xlsx,True,445542
+stoxx600,data/stoxx600/ResultBubbles_STOXX_Mar2025.xlsx,True,21146854

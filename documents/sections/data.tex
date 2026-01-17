@@ -1,0 +1,21 @@
+\section{Data}
+
+\subsection{Inputs and repository layout}
+
+This repository contains two primary input folders:
+\begin{itemize}
+  \item Romanian market (RO): \texttt{data/ro/}
+  \item STOXX 600: \texttt{data/stoxx600/}
+\end{itemize}
+
+The active pipeline reads RO bubble episode timing and RO $\Delta$CoVaR values from Excel files under \texttt{data/ro/}.
+The FRM module (optional) reads RO returns from \texttt{data/ro/ResultResults\_ro\_bet\_returns.xlsx}.
+STOXX 600 inputs are present for extension work and are not required for the minimal paper build.
+
+\subsection{Expected sheets (RO)}
+\begin{itemize}
+  \item Bubble episodes: sheet \texttt{Breakdowns} (Firm, Start, Peak, End, Duration)
+  \item Date index: sheet \texttt{BUB (CVM= WB, CVQ=95\%, L=0)} with a \texttt{Date} column
+  \item $\Delta$CoVaR: \texttt{Delta CoVaR (K=95\%)} with \texttt{Date} plus firm columns
+\end{itemize}
+
