@@ -74,6 +74,7 @@ class MakePaperArgs:
     dataset: str
     run_frm: bool
     run_tgnn: bool
+    run_robustness: bool
     skip_temporal: bool
     skip_centrality: bool
     skip_pdf: bool
@@ -186,6 +187,7 @@ def parse_args(argv: Optional[List[str]] = None) -> MakePaperArgs:
     p.add_argument("--dataset", choices=["ro", "stoxx600"], default="ro", help="Dataset label for reporting.")
     p.add_argument("--run-frm", action="store_true", help="Run FRM module (can be slow)")
     p.add_argument("--run-tgnn", action="store_true", help="Run TGNN module (optional)")
+    p.add_argument("--run-robustness", action="store_true", help="Run robustness grid for overlap network")
     p.add_argument("--start-date", type=str, default=None, help="FRM start date (YYYY-MM-DD)")
     p.add_argument("--skip-temporal", action="store_true", help="Skip temporal graph rebuild (reuse cached pkl if any)")
     p.add_argument("--skip-centrality", action="store_true", help="Skip centrality diagnostics/plots")
@@ -198,6 +200,7 @@ def parse_args(argv: Optional[List[str]] = None) -> MakePaperArgs:
         dataset=ns.dataset,
         run_frm=bool(ns.run_frm),
         run_tgnn=bool(ns.run_tgnn),
+        run_robustness=bool(ns.run_robustness),
         skip_temporal=bool(ns.skip_temporal),
         skip_centrality=bool(ns.skip_centrality),
         skip_pdf=bool(ns.skip_pdf),
@@ -236,6 +239,9 @@ def _planned_io(args: MakePaperArgs) -> Dict[str, List[str]]:
         "documents/figures/fig_centrality_heatmap.png",
         "documents/figures/fig_centrality_top_nodes.png",
         "documents/figures/fig_tgnn_performance.png",
+        "results/robustness/robustness_summary.csv",
+        "documents/tables/table_robustness_summary.tex",
+        "documents/figures/fig_robustness_heatmap.png",
         "documents/build/main.pdf",
     ]
     if args.run_tgnn:
@@ -250,7 +256,7 @@ def _print_dry_run(args: MakePaperArgs) -> None:
     print("[make_paper] DRY RUN")
     print(f"[make_paper] mode={args.mode} dataset={args.dataset} run_frm={args.run_frm} run_tgnn={args.run_tgnn}")
     print(
-        f"[make_paper] skip_temporal={args.skip_temporal} skip_centrality={args.skip_centrality} "
+        f"[make_paper] run_robustness={args.run_robustness} skip_temporal={args.skip_temporal} skip_centrality={args.skip_centrality} "
         f"skip_pdf={args.skip_pdf} report={args.report}"
     )
     print("[make_paper] Reads:")
@@ -436,6 +442,30 @@ def main(argv: Optional[List[str]] = None) -> int:
             "documents/figures/fig_centrality_top_nodes.png",
         ]
 
+    if args.run_robustness:
+        from bubbles_networks.robustness import RobustnessRun, run_overlap_network_robustness
+
+        runs = [
+            RobustnessRun(min_overlap_days=m, edge_rule=r)
+            for m in [0, 5, 10]
+            for r in ["start_lead", "overlap_undirected_then_direct"]
+        ]
+        run_overlap_network_robustness(
+            dataset=args.dataset,
+            bubble_file=ro_spec.bubble_file,
+            date_sheet=ro_spec.date_sheet,
+            bubble_sheet=ro_spec.bubble_sheet,
+            runs=runs,
+            out_summary_csv="results/robustness/robustness_summary.csv",
+            out_paper_tex="documents/tables/table_robustness_summary.tex",
+            out_paper_fig="documents/figures/fig_robustness_heatmap.png",
+        )
+        outputs += [
+            "results/robustness/robustness_summary.csv",
+            "documents/tables/table_robustness_summary.tex",
+            "documents/figures/fig_robustness_heatmap.png",
+        ]
+
     outputs += export_paper_assets(skip_centrality=args.skip_centrality, run_tgnn=args.run_tgnn)
 
     if not args.skip_pdf:
@@ -458,6 +488,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             "dataset": args.dataset,
             "run_frm": str(args.run_frm),
             "run_tgnn": str(args.run_tgnn),
+            "run_robustness": str(args.run_robustness),
             "skip_temporal": str(skip_temporal),
             "skip_centrality": str(args.skip_centrality),
             "skip_pdf": str(args.skip_pdf),
@@ -485,6 +516,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 stats["temporal_date_end"] = str(max(dates))
         except Exception:
             pass
+        if args.run_robustness:
+            stats["robustness_runs"] = "6"
 
         write_run_report(
             str(report_path),

@@ -3,9 +3,9 @@
 This document is the single source of truth for: (1) what the paper is claiming, (2) what the code actually does, (3) what a harsh reviewer will challenge, and (4) the concrete milestones to reach a publishable, reproducible state.
 
 ## Next 3 actions
-1. Robustness: sensitivity sweep for overlap definitions (thresholds/windows) and export deltas to `documents/`.
-2. Temporal diagnostics: add invariants + density/edge-count stability plots over time.
-3. FRM/TGNN: define leakage-free split protocol + baselines + metrics (runtime controls documented).
+1. Decide next milestone focus: prioritize FRM networks vs TGNN forecasting (scope + compute budget).
+2. Robustness expansion: add overlap-window variants + threshold sweeps and report deltas in `documents/`.
+3. Temporal diagnostics: invariants + density/edge-count stability plots over time.
 
 ## Current status (from code reality)
 
@@ -83,6 +83,7 @@ This document is the single source of truth for: (1) what the paper is claiming,
 - [ ] Sensitivity: edge weighting (binary vs overlap-days), sparsity filtering rules
 
 ### M4 - FRM dynamic networks (optional) + runtime controls
+- [x] M4-lite: overlap-network robustness grid (min overlap days x edge rule) exported to paper
 - [ ] Runtime controls documented (window, threshold, parallelization, start date)
 - [ ] Diagnostics: edge density, coefficient distributions, stability across thresholds
 
@@ -121,5 +122,8 @@ python scripts/make_paper.py --mode full --run-frm --run-tgnn
 - Paper modularized into `documents/sections/*.tex` and stabilized paper asset paths under `documents/figures/` and `documents/tables/`.
 - Added `scripts/make_paper.py` to generate paper assets and build the PDF.
 - Added M2/M3 baseline validation exports (data dictionary, network diagnostics, centrality summaries) and `make_paper --dry-run/--report` discipline.
+- Added robustness runner for overlap-network construction (grid over min overlap days and edge rule) with paper table/heatmap integration.
 - make_paper report: `C:/Users/Radu/VSCode/StochasticDominanceBubbles/results/run_reports/20260117_233442Z_ro_minimal.md` (mode=minimal, dataset=ro, nodes=19, edges=245, snapshots=1873)
+
+- make_paper report: `C:/Users/Radu/VSCode/StochasticDominanceBubbles/results/run_reports/20260117_235131Z_ro_minimal.md` (mode=minimal, dataset=ro, nodes=19, edges=246, snapshots=1873)
 

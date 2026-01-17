@@ -1,14 +1,29 @@
-\section{Robustness (planned)}
+\section{Robustness}
 
-\subsection{Sensitivity to overlap definition}
-\begin{itemize}
-  \item Edge definition: binary overlap vs overlap-days weighting.
-  \item Minimum edge thresholds and filtering for sparse snapshots.
-\end{itemize}
+We assess how sensitive the baseline overlap network is to the exact edge-construction choices.
+The goal is not to exhaustively search the parameter space, but to confirm that key diagnostics and the identity of highly central firms are not an artifact of a single, hard-coded definition.
 
-\subsection{Sensitivity to FRM hyperparameters (optional)}
-\begin{itemize}
-  \item Quantile level, regularization, and edge threshold.
-  \item Rolling window length and start date.
-\end{itemize}
+\subsection{Overlap-network sensitivity grid (M4-lite)}
 
+We run a small grid over two design choices:
+(i) a minimum overlap threshold (min overlap days in $\{0,5,10\}$), and
+(ii) an edge direction rule.
+The baseline rule (\texttt{start\_lead}) directs edges from earlier bubble start to later bubble start whenever bubble episodes overlap.
+An alternative rule (\texttt{overlap\_undirected\_then\_direct}) first aggregates overlaps for each firm pair and then directs the edge using the average lead/lag of bubble start dates across overlapping episodes.
+
+Table~\ref{tab:robustness_summary} summarizes how global network diagnostics and the stability of the top-10 nodes (by aggregate centrality) vary across configurations.
+Figure~\ref{fig:robustness_heatmap} visualizes the top-10 stability as a heatmap (Jaccard overlap relative to the baseline configuration).
+
+\input{tables/table_robustness_summary}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.75\textwidth]{fig\_robustness\_heatmap.png}
+  \caption{Robustness heatmap: top-10 stability (Jaccard overlap vs baseline) across overlap-network configurations.}
+  \label{fig:robustness_heatmap}
+\end{figure}
+
+\subsection{FRM sensitivity (planned)}
+
+The FRM module introduces additional hyperparameters (quantile level, regularization, window length, edge threshold).
+We treat FRM robustness as a separate, heavier-compute milestone and keep it out of the minimal paper build by default.
