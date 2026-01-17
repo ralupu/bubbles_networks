@@ -1,5 +1,6 @@
 import argparse
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -90,6 +91,24 @@ def _required_paths_ok(required: Sequence[Tuple[Path, str]]) -> None:
         raise RuntimeError("\n".join(lines))
 
 
+def _write_tgnn_placeholder(out_path: Path) -> None:
+    placeholder = _repo_root() / "documents" / "figures" / "fig_tgnn_performance_placeholder.png"
+    if not placeholder.exists():
+        raise RuntimeError(
+            "[make_paper] Missing TGNN placeholder: documents/figures/fig_tgnn_performance_placeholder.png"
+        )
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(placeholder, out_path)
+
+
+def _require_text_contains(path: Path, needle: str) -> None:
+    if not path.exists():
+        raise RuntimeError(f"[make_paper] Expected file not found: {path}")
+    text = path.read_text(encoding="utf-8", errors="replace")
+    if needle not in text:
+        raise RuntimeError(f"[make_paper] Expected marker not found in {path}: {needle}")
+
+
 def export_paper_assets(*, skip_centrality: bool, run_tgnn: bool) -> List[str]:
     repo = _repo_root()
     figures = repo / "figures"
@@ -138,7 +157,9 @@ def export_paper_assets(*, skip_centrality: bool, run_tgnn: bool) -> List[str]:
 
     if run_tgnn:
         _copy(figures / "tgnn_performance.png", doc_figures / "fig_tgnn_performance.png")
-        created += ["documents/figures/fig_tgnn_performance.png"]
+    else:
+        _write_tgnn_placeholder(doc_figures / "fig_tgnn_performance.png")
+    created += ["documents/figures/fig_tgnn_performance.png"]
 
     return created
 
@@ -214,10 +235,11 @@ def _planned_io(args: MakePaperArgs) -> Dict[str, List[str]]:
         "documents/figures/fig_centrality_dynamics.png",
         "documents/figures/fig_centrality_heatmap.png",
         "documents/figures/fig_centrality_top_nodes.png",
+        "documents/figures/fig_tgnn_performance.png",
         "documents/build/main.pdf",
     ]
     if args.run_tgnn:
-        writes += ["figures/tgnn_performance.png", "documents/figures/fig_tgnn_performance.png"]
+        writes += ["figures/tgnn_performance.png"]
     if args.report:
         writes += ["results/run_reports/<timestamp>_<dataset>_<mode>.md"]
     return {"reads": reads, "writes": writes}
@@ -243,19 +265,29 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
     _ensure_imports()
 
-    if args.dataset != "ro":
-        print("[make_paper] ERROR: dataset=stoxx600 is not wired into the active pipeline yet.")
-        return 2
-
     if args.dry_run:
         _print_dry_run(args)
         return 0
 
     from bubbles_networks.pipeline import PipelineArgs, run_pipeline
-    from bubbles_networks.validation import ValidationError, validate_ro_inputs
+    from bubbles_networks.validation import ExcelInputSpec, ValidationError, validate_inputs
+
+    if args.dataset != "ro":
+        print("[make_paper] ERROR: dataset=stoxx600 is not wired into the active pipeline yet.")
+        return 2
+
+    ro_spec = ExcelInputSpec(
+        dataset="ro",
+        bubble_file="data/ro/ResultResults_ro_bet_bubbles.xlsx",
+        bubble_sheet="Breakdowns",
+        date_sheet="BUB (CVM= WB, CVQ=95%, L=0)",
+        covar_file="data/ro/ResultResults_ro_bet_covars.xlsx",
+        covar_sheet="Delta CoVaR (K=95%)",
+        returns_file="data/ro/ResultResults_ro_bet_returns.xlsx",
+    )
 
     try:
-        validate_ro_inputs()
+        validate_inputs(ro_spec)
     except ValidationError as e:
         print(f"[make_paper] INPUT VALIDATION ERROR: {e}")
         return 2
@@ -298,6 +330,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     from bubbles_networks.network_aggregate import build_aggregate_overlap_graph
     from bubbles_networks.validation import (
+        DataDictionaryRow,
         write_centrality_diagnostics,
         write_data_dictionary,
         write_network_diagnostics,
@@ -306,12 +339,80 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     outputs: List[str] = []
 
-    write_data_dictionary()
+    rows = [
+        DataDictionaryRow(
+            dataset="ro",
+            file_path=ro_spec.bubble_file,
+            sheet=ro_spec.bubble_sheet,
+            required_columns="Firm,Start,Peak,End,Duration",
+            column_types="Firm:str; Start:int; Peak:int; End:int; Duration:int",
+            notes="Start/Peak/End are integer indices mapped to calendar dates using the date-index sheet.",
+        ),
+        DataDictionaryRow(
+            dataset="ro",
+            file_path=ro_spec.bubble_file,
+            sheet=ro_spec.date_sheet,
+            required_columns="Date",
+            column_types="Date:date",
+            notes="Provides date index mapping used by bubble episode tables.",
+        ),
+        DataDictionaryRow(
+            dataset="ro",
+            file_path=ro_spec.covar_file,
+            sheet=ro_spec.covar_sheet,
+            required_columns="Date,+firm columns",
+            column_types="Date:date; firms:float",
+            notes="Wide format: one column per firm with Delta CoVaR values.",
+        ),
+        DataDictionaryRow(
+            dataset="ro",
+            file_path=str(ro_spec.returns_file or ""),
+            sheet="(default)",
+            required_columns="Date,+firm columns",
+            column_types="Date:date; firms:float",
+            notes="Wide format returns used by FRM module (optional).",
+        ),
+        DataDictionaryRow(
+            dataset="stoxx600",
+            file_path="data/stoxx600/ResultBubbles_STOXX_Mar2025.xlsx",
+            sheet="(unknown/varies)",
+            required_columns="(project-specific)",
+            column_types="(project-specific)",
+            notes="Present for extension work; not required for the minimal paper build.",
+        ),
+    ]
+
+    write_data_dictionary(
+        rows=rows,
+        out_csv="results/metadata/data_dictionary.csv",
+        out_tex="documents/tables/table_data_dictionary.tex",
+    )
+    _require_text_contains(repo / "documents" / "tables" / "table_data_dictionary.tex", "\\label{tab:data_dictionary}")
     outputs += ["results/metadata/data_dictionary.csv", "documents/tables/table_data_dictionary.tex"]
 
-    G = build_aggregate_overlap_graph()
-    firm_mapping = {i: firm for i, firm in enumerate(list(G.nodes()))}
-    write_network_diagnostics(aggregate_graph=G, firm_mapping=firm_mapping)
+    G = build_aggregate_overlap_graph(bubble_file=ro_spec.bubble_file, date_sheet=ro_spec.date_sheet, bubble_sheet=ro_spec.bubble_sheet)
+    bubble_df = None
+    try:
+        import pandas as pd
+
+        bubble_df = pd.read_excel(ro_spec.bubble_file, sheet_name=ro_spec.bubble_sheet)
+    except Exception:
+        bubble_df = None
+    if bubble_df is not None and "Firm" in bubble_df.columns:
+        firms = sorted(bubble_df["Firm"].dropna().unique())
+    else:
+        firms = sorted(list(G.nodes()))
+    firm_mapping = {i: firm for i, firm in enumerate(firms)}
+
+    write_network_diagnostics(
+        aggregate_graph=G,
+        temporal_graphs_pkl="results/temporal_graphs.pkl",
+        firm_mapping=firm_mapping,
+        out_csv="results/network_summary.csv",
+        out_tex="documents/tables/table_network_summary.tex",
+        out_degree_fig="documents/figures/fig_degree_distributions.png",
+    )
+    _require_text_contains(repo / "documents" / "tables" / "table_network_summary.tex", "\\label{tab:network_summary}")
     outputs += [
         "results/network_summary.csv",
         "documents/tables/table_network_summary.tex",
@@ -319,7 +420,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     ]
 
     if not args.skip_centrality:
-        write_centrality_diagnostics()
+        write_centrality_diagnostics(
+            centrality_timeseries_csv="results/centrality_timeseries.csv",
+            temporal_graphs_pkl="results/temporal_graphs.pkl",
+            out_csv="results/centrality_summary.csv",
+            out_tex="documents/tables/table_centrality_summary.tex",
+            out_fig="documents/figures/fig_centrality_top_nodes.png",
+        )
+        _require_text_contains(
+            repo / "documents" / "tables" / "table_centrality_summary.tex", "\\label{tab:centrality_top10}"
+        )
         outputs += [
             "results/centrality_summary.csv",
             "documents/tables/table_centrality_summary.tex",
@@ -353,17 +463,78 @@ def main(argv: Optional[List[str]] = None) -> int:
             "skip_pdf": str(args.skip_pdf),
             "start_date": str(args.start_date or ""),
         }
+
+        env = {
+            "os": platform.platform(),
+            "python": sys.version.replace("\n", " "),
+            "python_executable": sys.executable,
+        }
+        stats: Dict[str, str] = {
+            "aggregate_nodes": str(int(G.number_of_nodes())),
+            "aggregate_edges": str(int(G.number_of_edges())),
+        }
+        try:
+            import pickle
+
+            with open(repo / "results" / "temporal_graphs.pkl", "rb") as f:
+                temporal = pickle.load(f)
+            if isinstance(temporal, list) and temporal:
+                dates = [d for d, _ in temporal]
+                stats["temporal_snapshots"] = str(len(temporal))
+                stats["temporal_date_start"] = str(min(dates))
+                stats["temporal_date_end"] = str(max(dates))
+        except Exception:
+            pass
+
         write_run_report(
             str(report_path),
             git_sha=_git_sha(repo),
             mode=args.mode,
             dataset=args.dataset,
             params=params,
+            environment=env,
+            stats=stats,
             outputs=outputs,
         )
         print(f"[make_paper] Wrote report: {report_path}")
 
+        roadmap = repo / "PUBLICATION_REVIEW_AND_ROADMAP.md"
+        if roadmap.exists():
+            summary = (
+                f"- make_paper report: `{report_path.as_posix()}` "
+                f"(mode={args.mode}, dataset={args.dataset}, nodes={stats.get('aggregate_nodes')}, "
+                f"edges={stats.get('aggregate_edges')}, snapshots={stats.get('temporal_snapshots', 'n/a')})"
+            )
+            _append_roadmap_dev_log(roadmap, [summary])
+
     return 0
+
+
+def _append_roadmap_dev_log(path: Path, lines: List[str]) -> None:
+    content = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    header = f"### {today}"
+    block = [line if line.startswith("- ") else f"- {line}" for line in lines]
+
+    try:
+        dev_idx = content.index("## Development log (update on every meaningful change)")
+    except ValueError:
+        content += ["", "## Development log (update on every meaningful change)", "", header] + block
+        path.write_text("\n".join(content) + "\n", encoding="utf-8")
+        return
+
+    # Find insertion point: under today's header if present, otherwise append a new header at end of dev-log section.
+    insert_at = len(content)
+    if header in content[dev_idx + 1 :]:
+        h_idx = content.index(header, dev_idx + 1)
+        insert_at = h_idx + 1
+        while insert_at < len(content) and not content[insert_at].startswith("### "):
+            insert_at += 1
+        content[insert_at:insert_at] = block + [""]
+    else:
+        content += ["", header] + block
+
+    path.write_text("\n".join(content) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,20 @@
+"""Validation and diagnostics for bubble network artifacts.
+
+This module is intentionally "dataset-agnostic": callers provide paths/sheet names
+for the dataset being analyzed (RO, STOXX600, etc.). The active pipeline currently
+wires RO by default, but these functions should not assume RO-only conventions.
+
+Outputs are designed to support the LaTeX paper as a living artifact by exporting
+figures/tables under `documents/` (tracked) while writing intermediate artifacts
+under `results/` (ignored by git policy).
+"""
+
 import csv
 import os
 import pickle
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,6 +22,8 @@ import pandas as pd
 
 
 class ValidationError(RuntimeError):
+    """Raised when required inputs/outputs are missing or inconsistent."""
+
     pass
 
 
@@ -53,27 +65,82 @@ def _require_columns(df: pd.DataFrame, required: Sequence[str], *, context: str)
         raise ValidationError(f"Missing required columns in {context}: {missing}. Present: {list(df.columns)}")
 
 
+@dataclass(frozen=True)
+class ExcelInputSpec:
+    """Defines which input files/sheets/columns must exist for a dataset run."""
+
+    dataset: str
+    bubble_file: str
+    bubble_sheet: str
+    date_sheet: str
+    covar_file: str
+    covar_sheet: str
+    returns_file: Optional[str] = None
+    returns_sheet: Optional[str] = None
+    bubble_required_columns: Tuple[str, ...] = ("Firm", "Start", "Peak", "End", "Duration")
+    date_required_columns: Tuple[str, ...] = ("Date",)
+    covar_required_columns: Tuple[str, ...] = ("Date",)
+    returns_required_columns: Tuple[str, ...] = ("Date",)
+
+
+def validate_inputs(spec: ExcelInputSpec, *, nrows: int = 5) -> None:
+    """Fail-loud preflight validation for required Excel inputs.
+
+    Parameters
+    - spec: Dataset input definition (paths + sheet names).
+    - nrows: Read only the first `nrows` for lightweight validation.
+    """
+
+    bubble = _read_excel_required(spec.bubble_file, spec.bubble_sheet, nrows=nrows)
+    _require_columns(bubble, list(spec.bubble_required_columns), context=f"{spec.bubble_file}::{spec.bubble_sheet}")
+
+    dates = _read_excel_required(spec.bubble_file, spec.date_sheet, nrows=nrows)
+    _require_columns(dates, list(spec.date_required_columns), context=f"{spec.bubble_file}::{spec.date_sheet}")
+
+    covar = _read_excel_required(spec.covar_file, spec.covar_sheet, nrows=nrows)
+    _require_columns(covar, list(spec.covar_required_columns), context=f"{spec.covar_file}::{spec.covar_sheet}")
+
+    if spec.returns_file and os.path.exists(spec.returns_file):
+        sheet = spec.returns_sheet if spec.returns_sheet is not None else 0
+        returns = pd.read_excel(spec.returns_file, sheet_name=sheet, nrows=nrows)
+        _require_columns(
+            returns,
+            list(spec.returns_required_columns),
+            context=f"{spec.returns_file}::{spec.returns_sheet or '(default)'}",
+        )
+
+
 def validate_ro_inputs(
     bubble_file: str = "data/ro/ResultResults_ro_bet_bubbles.xlsx",
     covar_file: str = "data/ro/ResultResults_ro_bet_covars.xlsx",
     returns_file: str = "data/ro/ResultResults_ro_bet_returns.xlsx",
+    bubble_sheet: str = "Breakdowns",
+    date_sheet: str = "BUB (CVM= WB, CVQ=95%, L=0)",
+    covar_sheet: str = "Delta CoVaR (K=95%)",
 ) -> None:
-    bubble = _read_excel_required(bubble_file, "Breakdowns", nrows=5)
-    _require_columns(bubble, ["Firm", "Start", "Peak", "End", "Duration"], context=f"{bubble_file}::Breakdowns")
+    """Backward-compatible RO validator.
 
-    dates = _read_excel_required(bubble_file, "BUB (CVM= WB, CVQ=95%, L=0)", nrows=5)
-    _require_columns(dates, ["Date"], context=f"{bubble_file}::BUB (CVM= WB, CVQ=95%, L=0)")
+    Prefer using `validate_inputs(ExcelInputSpec(...))` from new code.
+    """
 
-    covar = _read_excel_required(covar_file, "Delta CoVaR (K=95%)", nrows=5)
-    _require_columns(covar, ["Date"], context=f"{covar_file}::Delta CoVaR (K=95%)")
-
-    returns = pd.read_excel(returns_file, nrows=5) if os.path.exists(returns_file) else None
-    if returns is not None:
-        _require_columns(returns, ["Date"], context=f"{returns_file}")
+    validate_inputs(
+        ExcelInputSpec(
+            dataset="ro",
+            bubble_file=bubble_file,
+            bubble_sheet=bubble_sheet,
+            date_sheet=date_sheet,
+            covar_file=covar_file,
+            covar_sheet=covar_sheet,
+            returns_file=returns_file,
+            returns_sheet=None,
+        )
+    )
 
 
 @dataclass(frozen=True)
 class DataDictionaryRow:
+    """Row definition for the exported data dictionary."""
+
     dataset: str
     file_path: str
     sheet: str
@@ -83,57 +150,27 @@ class DataDictionaryRow:
 
 
 def write_data_dictionary(
-    out_csv: str = "results/metadata/data_dictionary.csv",
-    out_tex: str = "documents/tables/table_data_dictionary.tex",
+    *,
+    rows: Optional[Sequence[DataDictionaryRow]] = None,
+    out_csv: str,
+    out_tex: str,
 ) -> List[DataDictionaryRow]:
-    rows = [
-        DataDictionaryRow(
-            dataset="ro",
-            file_path="data/ro/ResultResults_ro_bet_bubbles.xlsx",
-            sheet="Breakdowns",
-            required_columns="Firm,Start,Peak,End,Duration",
-            column_types="Firm:str; Start:int; Peak:int; End:int; Duration:int",
-            notes="Start/Peak/End are integer indices mapped to calendar dates using the BUB sheet.",
-        ),
-        DataDictionaryRow(
-            dataset="ro",
-            file_path="data/ro/ResultResults_ro_bet_bubbles.xlsx",
-            sheet="BUB (CVM= WB, CVQ=95%, L=0)",
-            required_columns="Date",
-            column_types="Date:date",
-            notes="Provides date index mapping used by bubble episode tables.",
-        ),
-        DataDictionaryRow(
-            dataset="ro",
-            file_path="data/ro/ResultResults_ro_bet_covars.xlsx",
-            sheet="Delta CoVaR (K=95%)",
-            required_columns="Date,+firm columns",
-            column_types="Date:date; firms:float",
-            notes="Wide format: one column per firm with Delta CoVaR values.",
-        ),
-        DataDictionaryRow(
-            dataset="ro",
-            file_path="data/ro/ResultResults_ro_bet_returns.xlsx",
-            sheet="(default)",
-            required_columns="Date,+firm columns",
-            column_types="Date:date; firms:float",
-            notes="Wide format returns used by FRM module (optional).",
-        ),
-        DataDictionaryRow(
-            dataset="stoxx600",
-            file_path="data/stoxx600/ResultBubbles_STOXX_Mar2025.xlsx",
-            sheet="(unknown/varies)",
-            required_columns="(project-specific)",
-            column_types="(project-specific)",
-            notes="Present for extension work; not required for minimal paper build.",
-        ),
-    ]
+    """Write a data dictionary as CSV (artifact) and LaTeX table (paper).
+
+    Parameters
+    - rows: Optional explicit rows; if omitted, callers should provide dataset-specific rows.
+    - out_csv: CSV output path (typically under `results/metadata/`).
+    - out_tex: LaTeX table output path (typically under `documents/tables/`).
+    """
+
+    if rows is None:
+        rows = []
 
     os.makedirs(os.path.dirname(out_csv), exist_ok=True)
     with open(out_csv, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["dataset", "file_path", "sheet", "required_columns", "column_types", "notes"])
-        for r in rows:
+        for r in list(rows):
             w.writerow([r.dataset, r.file_path, r.sheet, r.required_columns, r.column_types, r.notes])
 
     os.makedirs(os.path.dirname(out_tex), exist_ok=True)
@@ -145,7 +182,7 @@ def write_data_dictionary(
         f.write("\\hline\n")
         f.write("Dataset & File (relative path) & Sheet & Notes \\\\\n")
         f.write("\\hline\n")
-        for r in rows:
+        for r in list(rows):
             file_tex = _latex_escape(r.file_path)
             sheet_tex = _latex_escape(r.sheet)
             notes_tex = _latex_escape(r.notes)
@@ -156,7 +193,7 @@ def write_data_dictionary(
         f.write("\\label{tab:data_dictionary}\n")
         f.write("\\end{table}\n")
 
-    return rows
+    return list(rows)
 
 
 def _load_temporal_graphs(pkl_path: str) -> List[Tuple[pd.Timestamp, object]]:
@@ -227,6 +264,19 @@ def write_network_diagnostics(
     out_tex: str = "documents/tables/table_network_summary.tex",
     out_degree_fig: str = "documents/figures/fig_degree_distributions.png",
 ) -> None:
+    """Compute and export baseline overlap network diagnostics.
+
+    Writes a CSV summary (artifact), a LaTeX table (paper), and a simple degree histogram
+    figure for the aggregate overlap network. Also includes per-snapshot rows for temporal
+    graphs in the CSV to support robustness runs.
+
+    Parameters
+    - aggregate_graph: networkx graph for the aggregate overlap network.
+    - temporal_graphs_pkl: Pickle path containing a list of (date, PyG graph) snapshots.
+    - firm_mapping: Mapping from snapshot node indices -> firm identifiers.
+    - out_csv/out_tex/out_degree_fig: Output paths.
+    """
+
     os.makedirs(os.path.dirname(out_csv), exist_ok=True)
     os.makedirs(os.path.dirname(out_tex), exist_ok=True)
     os.makedirs(os.path.dirname(out_degree_fig), exist_ok=True)
@@ -439,6 +489,14 @@ def write_centrality_diagnostics(
     out_tex: str = "documents/tables/table_centrality_summary.tex",
     out_fig: str = "documents/figures/fig_centrality_top_nodes.png",
 ) -> None:
+    """Validate and summarize temporal centrality time series.
+
+    Parameters
+    - centrality_timeseries_csv: CSV with columns: Date, Company, Degree, Betweenness, Eigenvector.
+    - temporal_graphs_pkl: Temporal graphs pickle (used for date alignment validation when present).
+    - out_csv/out_tex/out_fig: Output paths.
+    """
+
     _require_path(centrality_timeseries_csv)
     df = pd.read_csv(centrality_timeseries_csv)
     _require_columns(df, ["Date", "Company", "Degree", "Betweenness", "Eigenvector"], context=centrality_timeseries_csv)
@@ -512,8 +570,22 @@ def write_run_report(
     mode: str,
     dataset: str,
     params: Dict[str, str],
+    environment: Optional[Dict[str, str]] = None,
+    stats: Optional[Dict[str, str]] = None,
     outputs: Sequence[str],
 ) -> None:
+    """Write a Markdown run report for `scripts/make_paper.py`.
+
+    Parameters
+    - out_path: Output markdown path.
+    - git_sha: Current git commit hash.
+    - mode/dataset: Build mode + dataset label.
+    - params: Key/value configuration parameters.
+    - environment: Optional environment metadata (OS, python version, etc.).
+    - stats: Optional numeric summaries (nodes/edges, snapshots, date range, etc.).
+    - outputs: List of outputs created/updated by the run.
+    """
+
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     ts = datetime.now(timezone.utc).isoformat()
     lines = [
@@ -523,6 +595,23 @@ def write_run_report(
         f"- Git commit: `{git_sha}`",
         f"- Mode: `{mode}`",
         f"- Dataset: `{dataset}`",
+        "",
+        "## Environment",
+    ]
+    if environment:
+        for k in sorted(environment):
+            lines.append(f"- `{k}`: `{environment[k]}`")
+    else:
+        lines.append("- (not provided)")
+
+    lines += ["", "## Stats"]
+    if stats:
+        for k in sorted(stats):
+            lines.append(f"- `{k}`: `{stats[k]}`")
+    else:
+        lines.append("- (not provided)")
+
+    lines += [
         "",
         "## Parameters",
     ]

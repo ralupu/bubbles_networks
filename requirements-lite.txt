@@ -30,3 +30,5 @@ torchaudio==2.5.1
 
 torch-geometric==2.6.1
 torch_geometric_temporal==0.54.0
+
+pytest==8.3.4

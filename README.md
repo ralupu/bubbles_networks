@@ -58,6 +58,14 @@ notebooks/            # exploratory notebooks
 - `figures/` and `results/` are treated as **generated artifacts** and are **not tracked** in git (kept via `.gitkeep`).
 - Intermediate `*.pkl` produced by runs is not tracked.
 
+## Tests (smoke)
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-lite.txt
+python -m pip install -e .
+pytest -q
+```
+
 ## Stochastic Dominance (SD)
 SD is intentionally **removed from the active pipeline** for now and kept isolated in `legacy_sd/`.
 See `legacy_sd/README.md`.
