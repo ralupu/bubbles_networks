@@ -1,0 +1,32 @@
+# CPU-oriented "lite" environment for running the core pipeline.
+#
+# Notes:
+# - Uses CPU PyTorch (no CUDA wheels).
+# - Torch Geometric wheels can be platform-specific; if installation fails, follow the official PyG install guide.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+numpy==1.26.4
+pandas==2.2.2
+scipy==1.13.1
+scikit-learn==1.6.1
+statsmodels==0.14.4
+arch==7.2.0
+
+matplotlib==3.8.4
+seaborn==0.13.2
+plotly==5.24.1
+kaleido==0.2.1
+
+openpyxl==3.1.2
+XlsxWriter==3.2.0
+
+joblib==1.4.2
+networkx==3.2.1
+tqdm==4.67.1
+
+torch==2.5.1
+torchvision==0.20.1
+torchaudio==2.5.1
+
+torch-geometric==2.6.1
+torch_geometric_temporal==0.54.0

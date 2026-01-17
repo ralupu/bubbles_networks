@@ -1,101 +1,63 @@
-# Dynamic Bubble-Overlap Networks and Systemic Risk Forecasting
+# Bubble-Overlap Networks & Systemic Risk Forecasting
 
-This repository provides the complete codebase for empirical research on **financial bubble contagion** and **dynamic network-based systemic risk**.
+This repository contains research code for building **dynamic bubble-overlap networks**, optional **FRM (quantile-regression) networks**, and **TGNN-based forecasting** of node-level risk proxies (e.g., eigenvector centrality).
 
----
+## Quickstart (Windows / PowerShell)
 
-## Overview
-
-The project analyzes **dynamic financial networks** built from **overlapping bubble periods** in time series of asset prices.  
-The main pipeline includes:
-
-- **Bubble detection and descriptive analytics** (by asset)
-- **Construction of daily, time-evolving networks** based on bubble overlaps
-- **Visualization and temporal centrality analysis** of the resulting networks
-- **Temporal GNN (TGNN) forecasting** of node-level risk metrics (eigenvector centrality, ΔCoVaR, etc.)
-- **Flexible model configuration via command-line arguments**
-
-> **Note:**  
-> While this codebase is a platform for network-based risk analysis, **stochastic dominance and related distributional risk tests are not (yet) implemented.**  
-> For purely distributional or comparative risk analysis, see [future extensions](#future-extensions).
-
----
-
-## Directory Structure
-
-```
-repo-root/
-│
-├── descriptive_bubbles.py           # Bubble detection/descriptive analysis
-├── network_analysis.py              # Dynamic network construction (daily)
-├── network_simultaneous_bubbles.py  # Bubble overlap graph construction
-├── network_leads_laggards.py        # Bubble timing & propagation analysis
-├── chart_overlapping_bubbles.py     # Visualization of bubble phases
-├── centrality_analysis_module.py    # Computes and visualizes network centralities
-├── tgnn_forecasting_module.py       # TGNN (GConvGRU/A3TGCN/EvolveGCN) risk forecasting
-│
-├── temporal_graphs.pkl              # Serialized daily temporal network objects
-├── figures/                         # All output charts (networks, forecasts)
-├── data/                            # Raw and processed financial data
-│
-├── requirements.txt                 # Python dependencies
-└── README.md                        # This file
+### 1) Environment
+Activate the existing venv (or create a new one) and install dependencies:
+```powershell
+cd c:\Users\Radu\VSCode\StochasticDominanceBubbles
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m pip install -e .
 ```
 
----
-
-## Quickstart
-
-### 1. **Install Dependencies**
-```bash
-pip install -r requirements.txt
+CPU-only alternative:
+```powershell
+python -m pip install -r requirements-lite.txt
+python -m pip install -e .
 ```
-> For GPU acceleration, ensure you have a CUDA-enabled PyTorch  
-> (see [PyTorch install instructions](https://pytorch.org/get-started/locally/)).
 
----
-
-### 2. **Run the Network Pipeline**
-
-Run the scripts in sequence:
-```bash
-python descriptive_bubbles.py
-python network_analysis.py
-python network_simultaneous_bubbles.py
-python network_leads_laggards.py
-python chart_overlapping_bubbles.py
-python centrality_analysis_module.py
+### 2) Run the pipeline
+Minimal (fast) run:
+```powershell
+python scripts/run_pipeline.py --skip-temporal --skip-centrality
 ```
-This generates `temporal_graphs.pkl` and visual outputs in `figures/`.
 
----
-
-### 3. **TGNN Risk Forecasting**
-
-Run the GNN forecasting script with flexible options:
-```bash
-python tgnn_forecasting_module.py --hidden-size 128 --epochs 100 --model a3tgcn --lookback 5
+Full rebuild (creates artifacts in `results/` and `figures/`):
+```powershell
+python scripts/run_pipeline.py --run-frm --start-date 2020-01-01
 ```
-- **--model**: Choose `gconvgru`, `a3tgcn`, or `evolvegcn`
-- **--lookback**: Only used for `a3tgcn`; set to window size for temporal features
 
-Model performance charts will be saved in `figures/` with filenames encoding your parameter choices.
+Run TGNN explicitly:
+```powershell
+python scripts/run_tgnn.py --mode bubble --epochs 50 --model gconvgru
+```
 
----
+### 3) Build the paper PDF
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build_paper.ps1
+```
+Output: `documents/build/main.pdf`
 
-## Scientific Purpose
+## Repo structure
+```
+src/                  # importable research modules (active pipeline)
+scripts/              # thin CLIs + build tooling
+data/ro/              # Romanian market inputs (Excel)
+data/stoxx600/        # STOXX600 inputs (Excel)
+figures/              # generated plots (artifacts; not tracked)
+results/              # generated tables/pkl (artifacts; not tracked)
+documents/            # LaTeX paper + build output
+legacy_sd/            # isolated stochastic dominance code (not in active pipeline)
+notebooks/            # exploratory notebooks
+```
 
-- **Map and visualize the evolution of systemic risk** via daily bubble-overlap networks.
-- **Quantify how bubble dynamics impact the centrality (importance) of firms** in financial contagion networks.
-- **Benchmark temporal GNNs** for their ability to forecast node-level risk metrics, as a potential early-warning tool for regulators or risk managers.
+## Artifacts policy
+- `figures/` and `results/` are treated as **generated artifacts** and are **not tracked** in git (kept via `.gitkeep`).
+- Intermediate `*.pkl` produced by runs is not tracked.
 
----
-
-## Future Extensions
-
-- **Stochastic dominance and distributional analysis** comparing risk measures (e.g., ΔCoVaR, centrality) during bubble vs. non-bubble periods.
-- **Motif-based and graph resilience metrics** to further analyze market fragility.
-- **Integration of additional financial features or alternative graph constructions** (correlation, Granger, etc.)
-
-
-
+## Stochastic Dominance (SD)
+SD is intentionally **removed from the active pipeline** for now and kept isolated in `legacy_sd/`.
+See `legacy_sd/README.md`.

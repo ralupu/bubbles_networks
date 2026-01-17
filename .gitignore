@@ -13,6 +13,11 @@ env/
 .idea/
 .vscode/
 
+# Packaging/build outputs
+dist/
+build/
+*.egg-info/
+
 # Jupyter
 .ipynb_checkpoints/
 
@@ -31,5 +36,23 @@ Thumbs.db
 # Data artifacts (keep tracked files explicitly if needed)
 *.pkl
 
-# Derived figures
-figures/tgnn_forecast_performance_*.png
+# Generated figures (keep folder via .gitkeep)
+figures/*
+!figures/.gitkeep
+
+# Generated results/tables (keep folder via .gitkeep)
+results/*
+!results/.gitkeep
+
+# LaTeX build outputs (keep folder via .gitkeep)
+documents/build/*
+!documents/build/.gitkeep
+documents/*.aux
+documents/*.bbl
+documents/*.blg
+documents/*.fdb_latexmk
+documents/*.fls
+documents/*.log
+documents/*.out
+documents/*.synctex.gz
+documents/*.toc
