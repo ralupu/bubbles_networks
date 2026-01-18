@@ -242,6 +242,13 @@ def _planned_io(args: MakePaperArgs) -> Dict[str, List[str]]:
         "results/robustness/robustness_summary.csv",
         "documents/tables/table_robustness_summary.tex",
         "documents/figures/fig_robustness_heatmap.png",
+        "results/frm/frm_graphs.pkl",
+        "results/frm/frm_network_summary.csv",
+        "documents/tables/table_frm_network_summary.tex",
+        "documents/figures/fig_frm_degree_distributions.png",
+        "documents/figures/fig_frm_overlap_vs_bubble.png",
+        "documents/tables/table_frm_sensitivity.tex",
+        "documents/figures/fig_frm_sensitivity_heatmap.png",
         "documents/build/main.pdf",
     ]
     if args.run_tgnn:
@@ -323,7 +330,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     pipeline_args = PipelineArgs(
         skip_temporal=skip_temporal,
-        run_frm=args.run_frm,
+        run_frm=False,
         skip_centrality=args.skip_centrality,
         start_date=args.start_date,
         run_tgnn=args.run_tgnn,
@@ -466,6 +473,87 @@ def main(argv: Optional[List[str]] = None) -> int:
             "documents/figures/fig_robustness_heatmap.png",
         ]
 
+    frm_stats: Dict[str, str] = {}
+    frm_params: Dict[str, str] = {}
+    if args.run_frm:
+        from bubbles_networks.frm_network import FRMConfig
+        from bubbles_networks.frm_paper import run_frm_sensitivity_grid, run_frm_small_and_export_paper_outputs
+
+        if args.mode == "minimal":
+            cfg = FRMConfig(
+                returns_file=str(ro_spec.returns_file or "data/ro/ResultResults_ro_bet_returns.xlsx"),
+                start_date=args.start_date,
+                end_date=None,
+                max_days=260,
+                window_size=60,
+                step_size=5,
+                quantile=0.05,
+                alpha=0.0,
+                max_firms=20,
+                threshold_method="top_k_in",
+                top_k=5,
+                out_dir="results/frm",
+                parallel=False,
+            )
+        else:
+            cfg = FRMConfig(
+                returns_file=str(ro_spec.returns_file or "data/ro/ResultResults_ro_bet_returns.xlsx"),
+                start_date=args.start_date,
+                end_date=None,
+                max_days=None,
+                window_size=250,
+                step_size=1,
+                quantile=0.05,
+                alpha=0.0,
+                max_firms=None,
+                threshold_method="top_k_in",
+                top_k=5,
+                out_dir="results/frm",
+                parallel=False,
+            )
+
+        frm_params = {
+            "frm_window_size": str(cfg.window_size),
+            "frm_step_size": str(cfg.step_size),
+            "frm_quantile": str(cfg.quantile),
+            "frm_top_k": str(cfg.top_k),
+            "frm_max_firms": str(cfg.max_firms or ""),
+            "frm_max_days": str(cfg.max_days or ""),
+        }
+
+        frm_stats = run_frm_small_and_export_paper_outputs(
+            cfg=cfg,
+            bubble_file=ro_spec.bubble_file,
+            date_sheet=ro_spec.date_sheet,
+            bubble_sheet=ro_spec.bubble_sheet,
+            out_summary_csv="results/frm/frm_network_summary.csv",
+            out_table_tex="documents/tables/table_frm_network_summary.tex",
+            out_degree_fig="documents/figures/fig_frm_degree_distributions.png",
+            out_compare_fig="documents/figures/fig_frm_overlap_vs_bubble.png",
+        )
+        _require_text_contains(
+            repo / "documents" / "tables" / "table_frm_network_summary.tex", "\\label{tab:frm_network_summary}"
+        )
+        outputs += [
+            "results/frm/frm_graphs.pkl",
+            "results/frm/frm_network_summary.csv",
+            "documents/tables/table_frm_network_summary.tex",
+            "documents/figures/fig_frm_degree_distributions.png",
+            "documents/figures/fig_frm_overlap_vs_bubble.png",
+        ]
+
+        run_frm_sensitivity_grid(
+            base_cfg=FRMConfig(**{**cfg.__dict__, "max_days": 260, "max_firms": 20, "step_size": 10}),
+            window_sizes=[60, 120],
+            out_tex="documents/tables/table_frm_sensitivity.tex",
+            out_fig="documents/figures/fig_frm_sensitivity_heatmap.png",
+        )
+        _require_text_contains(repo / "documents" / "tables" / "table_frm_sensitivity.tex", "\\label{tab:frm_sensitivity}")
+        outputs += [
+            "documents/tables/table_frm_sensitivity.tex",
+            "documents/figures/fig_frm_sensitivity_heatmap.png",
+        ]
+
     outputs += export_paper_assets(skip_centrality=args.skip_centrality, run_tgnn=args.run_tgnn)
 
     if not args.skip_pdf:
@@ -494,6 +582,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             "skip_pdf": str(args.skip_pdf),
             "start_date": str(args.start_date or ""),
         }
+        params.update(frm_params)
 
         env = {
             "os": platform.platform(),
@@ -518,6 +607,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             pass
         if args.run_robustness:
             stats["robustness_runs"] = "6"
+        if args.run_frm:
+            stats.update(frm_stats)
 
         write_run_report(
             str(report_path),

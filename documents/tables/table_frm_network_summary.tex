@@ -1,0 +1,29 @@
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{l r r r r}
+\hline
+Network & Nodes & Edges & Density & Weak CCs \\
+\hline
+FRM (agg) & 20 & 116 & 0.3053 & 9 \\
+FRM (avg) & 20.0 & 33.0 & 0.0868 & 14.2 \\
+\hline
+\end{tabular}
+\caption{FRM network diagnostics (aggregate and temporal average).}
+\label{tab:frm_network_summary}
+\end{table}
+
+\noindent\textbf{Top nodes (aggregate)}\\
+\begin{verbatim}
+in-degree: BRD:11; SNG:11; SNN:11; TLV:11; DIG:10; FP:10; LPO:10; SNP:10; TGN:10; TRP:9
+out-degree: BRD:11; SNG:11; SNN:11; TLV:11; DIG:10; FP:10; LPO:10; SNP:10; TGN:10; TRP:9
+in-weighted-degree: SNN:86.6; BRD:85.5; TLV:75.5; SNP:44.5; FP:38.4; SNG:35.3; TGN:33.2; LPO:31.6; DIG:24.3; TEL:19.6
+out-weighted-degree: TGN:82.8; SNG:67.6; TLV:64.7; BRD:55.3; SNP:52.9; FP:36.4; SNN:35.5; TEL:34.7; LPO:24; DIG:21.1
+\end{verbatim}
+
+\noindent\textbf{Top nodes (temporal average)}\\
+\begin{verbatim}
+in-degree(avg): BRD:4.72; TLV:4.72; SNN:3.9; SNG:3.62; SNP:3.52; TGN:3.17; FP:2.62; DIG:2; LPO:1.88; TEL:1.57
+out-degree(avg): TLV:4.72; BRD:4.28; SNG:4.22; TGN:3.73; SNP:3.58; SNN:3.42; FP:2.65; LPO:2.02; TEL:1.65; DIG:1.62
+weighted-degree(avg): BRD:3.52; TLV:3.5; SNN:3.05; TGN:2.9; SNG:2.57; SNP:2.44; FP:1.87; LPO:1.39; TEL:1.36; DIG:1.14
+\end{verbatim}

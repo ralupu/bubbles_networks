@@ -31,10 +31,18 @@ For temporal centrality validation, we enforce strictly increasing snapshot date
   \item \texttt{documents/figures/fig\_centrality\_top\_nodes.png}
 \end{itemize}
 
-\subsection{FRM dynamic networks (optional; heavier compute)}
+\subsection{FRM dynamic network (quantile regression)}
 
-We optionally construct rolling-window FRM networks via quantile regression to estimate tail dependence.
-This step can be computationally expensive and is exposed via a dedicated flag in the build script.
+As a second systemic-risk lens, we construct dynamic FRM networks from rolling-window quantile regression on firm returns.
+Let $r_j(t)$ denote the return of firm $j$ at time $t$.
+For each target firm $j$ and each evaluation date $t$, we fit a quantile regression at quantile $q$ over a rolling window of length $W$:
+\begin{equation}
+  r_j(\tau) = \alpha_j(t) + \sum_{i \neq j} \beta_{i \rightarrow j}(t) \, r_i(\tau) + \varepsilon_j(\tau), \qquad \tau \in \{t-W,\dots,t\}.
+\end{equation}
+We interpret the coefficient $\beta_{i \rightarrow j}(t)$ as a directed dependency from $i$ to $j$ in the tail of the return distribution (at quantile $q$).
+Edges are thresholded using a simple, publishable rule: we keep the top-$K$ incoming edges per target node $j$ ranked by $|\beta|$ (with $K=5$ in the paper builds), and define edge weights as $|\beta|$.
+
+The FRM network is written as a sequence of PyTorch Geometric snapshots under \texttt{results/frm/} (artifacts) and paper-facing summaries/figures are exported to \texttt{documents/} when the FRM build flag is enabled.
 
 \subsection{TGNN forecasting (optional)}
 

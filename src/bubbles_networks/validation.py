@@ -263,6 +263,10 @@ def write_network_diagnostics(
     out_csv: str = "results/network_summary.csv",
     out_tex: str = "documents/tables/table_network_summary.tex",
     out_degree_fig: str = "documents/figures/fig_degree_distributions.png",
+    tex_caption: str = "Baseline network diagnostics (aggregate and temporal average).",
+    tex_label: str = "tab:network_summary",
+    tex_aggregate_name: str = "Aggregate",
+    tex_temporal_name: str = "Temporal (avg)",
 ) -> None:
     """Compute and export baseline overlap network diagnostics.
 
@@ -441,14 +445,14 @@ def write_network_diagnostics(
         f.write("\\begin{tabular}{l r r r r}\n\\hline\n")
         f.write("Network & Nodes & Edges & Density & Weak CCs \\\\\n\\hline\n")
         f.write(
-            f"Aggregate & {int(agg_row['nodes'])} & {int(agg_row['edges'])} & {agg_row['density']:.4f} & {int(agg_row['components_weak'])} \\\\\n"
+            f"{tex_aggregate_name} & {int(agg_row['nodes'])} & {int(agg_row['edges'])} & {agg_row['density']:.4f} & {int(agg_row['components_weak'])} \\\\\n"
         )
         f.write(
-            f"Temporal (avg) & {temporal_row['nodes']:.1f} & {temporal_row['edges']:.1f} & {temporal_row['density']:.4f} & {temporal_row['components_weak']:.1f} \\\\\n"
+            f"{tex_temporal_name} & {temporal_row['nodes']:.1f} & {temporal_row['edges']:.1f} & {temporal_row['density']:.4f} & {temporal_row['components_weak']:.1f} \\\\\n"
         )
         f.write("\\hline\n\\end{tabular}\n")
-        f.write("\\caption{Baseline network diagnostics (aggregate and temporal average).}\n")
-        f.write("\\label{tab:network_summary}\n")
+        f.write(f"\\caption{{{tex_caption}}}\n")
+        f.write(f"\\label{{{tex_label}}}\n")
         f.write("\\end{table}\n\n")
         f.write("\\noindent\\textbf{Top nodes (aggregate)}\\\\\n")
         f.write("\\begin{verbatim}\n")

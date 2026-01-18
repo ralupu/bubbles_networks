@@ -49,6 +49,10 @@ def combine_node_features(bubble_g: Data, frm_g: Data) -> np.ndarray:
 
 if __name__ == "__main__":
     bubble = load_pkl_graphs("results/temporal_graphs.pkl")
-    frm = load_pkl_graphs("results/frm_graphs.pkl")
+    frm_path = "results/frm/frm_graphs.pkl"
+    try:
+        frm = load_pkl_graphs(frm_path)
+    except FileNotFoundError:
+        frm = load_pkl_graphs("results/frm_graphs.pkl")
     aligned = align_graphs_by_date(bubble, frm)
     print(f"Aligned snapshots: {len(aligned)}")

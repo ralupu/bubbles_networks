@@ -7,7 +7,7 @@ from typing import List, Optional
 from bubbles_networks.bubble_overlap_chart import generate_bubble_overlap_chart
 from bubbles_networks.centrality_analysis import run_centrality_analysis
 from bubbles_networks.descriptive_bubbles import run_descriptive_bubble_analysis
-from bubbles_networks.frm_network import build_dynamic_frm_graphs
+from bubbles_networks.frm_network import FRMConfig, build_frm_snapshot_sequence
 from bubbles_networks.network_aggregate import run_aggregate_network_analysis
 from bubbles_networks.temporal_network import build_temporal_graphs
 
@@ -40,9 +40,20 @@ def run_pipeline(args: PipelineArgs) -> int:
 
     if args.run_frm:
         print("==== Step 5: Build FRM Dynamic Networks ====")
-        build_dynamic_frm_graphs(start_date=args.start_date)
+        cfg = FRMConfig(
+            start_date=args.start_date,
+            window_size=250,
+            step_size=1,
+            quantile=0.05,
+            alpha=0.0,
+            threshold_method="top_k_in",
+            top_k=5,
+            out_dir="results/frm",
+            parallel=False,
+        )
+        build_frm_snapshot_sequence(cfg)
     else:
-        print("==== Step 5 skipped. (Pass --run-frm to generate results/frm_graphs.pkl) ====")
+        print("==== Step 5 skipped. (Pass --run-frm to generate results/frm/frm_graphs.pkl) ====")
 
     if not args.skip_centrality:
         print("==== Step 6: Compute Centrality Metrics (Bubble only) ====")
@@ -65,7 +76,7 @@ def run_pipeline(args: PipelineArgs) -> int:
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the end-to-end bubble network pipeline.")
     parser.add_argument("--skip-temporal", action="store_true", help="Skip temporal network generation")
-    parser.add_argument("--run-frm", action="store_true", help="Generate FRM networks (results/frm_graphs.pkl)")
+    parser.add_argument("--run-frm", action="store_true", help="Generate FRM networks (results/frm/frm_graphs.pkl)")
     parser.add_argument("--start-date", type=str, default=None, help="First date to include (YYYY-MM-DD) for FRM")
     parser.add_argument("--skip-centrality", action="store_true", help="Skip centrality calculations/plots")
     parser.add_argument("--run-tgnn", action="store_true", help="Run TGNN forecasting at the end")

@@ -19,7 +19,7 @@ This document is the single source of truth for: (1) what the paper is claiming,
   - Aggregate overlap network: `src/bubbles_networks/network_aggregate.py`
   - Temporal bubble graphs (PyG snapshots): `src/bubbles_networks/temporal_network.py` -> `results/temporal_graphs.pkl` (artifact)
   - Centrality analytics + plots: `src/bubbles_networks/centrality_analysis.py`
-  - FRM (rolling quantile regression) temporal graphs: `src/bubbles_networks/frm_network.py` -> `results/frm_graphs.pkl` (artifact)
+  - FRM (rolling quantile regression) temporal graphs: `src/bubbles_networks/frm_network.py` -> `results/frm/frm_graphs.pkl` (artifact)
   - TGNN forecasting: `src/bubbles_networks/tgnn_forecasting.py` + wrapper `scripts/run_tgnn.py`
 - Paper source is modularized: `documents/main.tex` + `documents/sections/*.tex`
 - Paper assets live in `documents/figures/` and `documents/tables/` (stable filenames referenced by LaTeX)
@@ -84,6 +84,9 @@ This document is the single source of truth for: (1) what the paper is claiming,
 
 ### M4 - FRM dynamic networks (optional) + runtime controls
 - [x] M4-lite: overlap-network robustness grid (min overlap days x edge rule) exported to paper
+- [x] FRM protocol implemented (rolling quantile regression, top-K incoming edges, deterministic configs)
+- [x] FRM diagnostics exported to paper (summary table, degree distributions, bubble-vs-FRM comparison)
+- [x] Minimal FRM sensitivity (window size) exported to paper
 - [ ] Runtime controls documented (window, threshold, parallelization, start date)
 - [ ] Diagnostics: edge density, coefficient distributions, stability across thresholds
 
@@ -125,5 +128,10 @@ python scripts/make_paper.py --mode full --run-frm --run-tgnn
 - Added robustness runner for overlap-network construction (grid over min overlap days and edge rule) with paper table/heatmap integration.
 - make_paper report: `C:/Users/Radu/VSCode/StochasticDominanceBubbles/results/run_reports/20260117_233442Z_ro_minimal.md` (mode=minimal, dataset=ro, nodes=19, edges=245, snapshots=1873)
 
+### 2026-01-18
+- Added FRM protocol + runtime controls (`src/bubbles_networks/frm_network.py`, `scripts/run_frm.py`) and paper exports (`src/bubbles_networks/frm_paper.py`).
+
 - make_paper report: `C:/Users/Radu/VSCode/StochasticDominanceBubbles/results/run_reports/20260117_235131Z_ro_minimal.md` (mode=minimal, dataset=ro, nodes=19, edges=246, snapshots=1873)
+
+- make_paper report: `C:/Users/Radu/VSCode/StochasticDominanceBubbles/results/run_reports/20260118_001933Z_ro_minimal.md` (mode=minimal, dataset=ro, nodes=19, edges=246, snapshots=1873)
 

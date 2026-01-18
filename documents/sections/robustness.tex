@@ -14,16 +14,36 @@ An alternative rule (\texttt{overlap\_undirected\_then\_direct}) first aggregate
 Table~\ref{tab:robustness_summary} summarizes how global network diagnostics and the stability of the top-10 nodes (by aggregate centrality) vary across configurations.
 Figure~\ref{fig:robustness_heatmap} visualizes the top-10 stability as a heatmap (Jaccard overlap relative to the baseline configuration).
 
-\input{tables/table_robustness_summary}
+\IfFileExists{tables/table_robustness_summary.tex}{
+  \input{tables/table_robustness_summary}
+}{
+  \noindent\textit{Overlap-network robustness table not available (run make\_paper with \texttt{--run-robustness}).}
+}
 
-\begin{figure}[ht]
-  \centering
-  \includegraphics[width=0.75\textwidth]{fig\_robustness\_heatmap.png}
-  \caption{Robustness heatmap: top-10 stability (Jaccard overlap vs baseline) across overlap-network configurations.}
-  \label{fig:robustness_heatmap}
-\end{figure}
+\IfFileExists{figures/fig_robustness_heatmap.png}{
+  \begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{fig\_robustness\_heatmap.png}
+    \caption{Robustness heatmap: top-10 stability (Jaccard overlap vs baseline) across overlap-network configurations.}
+    \label{fig:robustness_heatmap}
+  \end{figure}
+}{}
 
-\subsection{FRM sensitivity (planned)}
+\subsection{FRM sensitivity (minimal)}
 
-The FRM module introduces additional hyperparameters (quantile level, regularization, window length, edge threshold).
-We treat FRM robustness as a separate, heavier-compute milestone and keep it out of the minimal paper build by default.
+We include a minimal FRM sensitivity check over the rolling window length ($W \in \{60,120\}$) while keeping the quantile fixed ($q=0.05$) and using a top-$K$ incoming edge rule (with $K=5$).
+This is designed to be fast enough for routine runs while highlighting whether the FRM structure is overly dependent on a single window choice.
+
+\IfFileExists{tables/table_frm_sensitivity.tex}{
+  \input{tables/table_frm_sensitivity}
+}{
+  \noindent\textit{FRM sensitivity table not available (run make\_paper with \texttt{--run-frm}).}
+}
+
+\IfFileExists{figures/fig_frm_sensitivity_heatmap.png}{
+  \begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{fig\_frm\_sensitivity\_heatmap.png}
+    \caption{FRM sensitivity: top-10 stability (Jaccard overlap vs baseline) across window sizes.}
+  \end{figure}
+}{}

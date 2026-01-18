@@ -49,7 +49,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--frm-file",
         type=str,
-        default="results/frm_graphs.pkl",
+        default="results/frm/frm_graphs.pkl",
         help="FRM graph pkl file",
     )
     parser.add_argument(
@@ -209,15 +209,23 @@ def run(args: argparse.Namespace) -> int:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
+    def resolve_frm_path(path: str) -> str:
+        if os.path.exists(path):
+            return path
+        legacy = "results/frm_graphs.pkl"
+        if os.path.exists(legacy):
+            return legacy
+        return path
+
     if args.mode == "bubble":
         bubble = load_graph_snapshots(args.bubble_file)
         graphs = bubble.graphs
     elif args.mode == "frm":
-        frm = load_graph_snapshots(args.frm_file)
+        frm = load_graph_snapshots(resolve_frm_path(args.frm_file))
         graphs = frm.graphs
     elif args.mode == "both":
         bubble = load_graph_snapshots(args.bubble_file)
-        frm = load_graph_snapshots(args.frm_file)
+        frm = load_graph_snapshots(resolve_frm_path(args.frm_file))
         aligned = align_by_date(bubble, frm)
         if not aligned:
             raise ValueError("No common dates found between bubble and FRM graph pickles.")
