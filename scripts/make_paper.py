@@ -276,6 +276,7 @@ def _planned_io(args: MakePaperArgs) -> Dict[str, List[str]]:
             "results/frm/frm_graphs.pkl",
             "results/frm/frm_network_summary.csv",
             "documents/tables/table_frm_network_summary.tex",
+            "documents/tables/table_frm_stats.tex",
             "documents/figures/fig_frm_degree_distributions.png",
             "documents/figures/fig_frm_overlap_vs_bubble.png",
             "documents/tables/table_frm_sensitivity.tex",
@@ -531,6 +532,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.run_frm:
         from bubbles_networks.frm_network import FRMConfig
         from bubbles_networks.frm_paper import run_frm_sensitivity_grid, run_frm_small_and_export_paper_outputs
+        from bubbles_networks.frm_descriptive_stats import write_frm_temporal_stats_table
 
         if args.mode == "minimal":
             cfg = FRMConfig(
@@ -587,10 +589,17 @@ def main(argv: Optional[List[str]] = None) -> int:
         _require_text_contains(
             repo / "documents" / "tables" / "table_frm_network_summary.tex", "\\label{tab:frm_network_summary}"
         )
+
+        frm_temporal_stats = write_frm_temporal_stats_table(
+            frm_graphs_pkl=str(repo / "results" / "frm" / "frm_graphs.pkl"),
+            out_tex=str(repo / "documents" / "tables" / "table_frm_stats.tex"),
+        )
+        frm_stats.update(frm_temporal_stats)
         outputs += [
             "results/frm/frm_graphs.pkl",
             "results/frm/frm_network_summary.csv",
             "documents/tables/table_frm_network_summary.tex",
+            "documents/tables/table_frm_stats.tex",
             "documents/figures/fig_frm_degree_distributions.png",
             "documents/figures/fig_frm_overlap_vs_bubble.png",
         ]
