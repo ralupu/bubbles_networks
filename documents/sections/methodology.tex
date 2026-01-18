@@ -44,6 +44,14 @@ Edges are thresholded using a simple, publishable rule: we keep the top-$K$ inco
 
 The FRM network is written as a sequence of PyTorch Geometric snapshots under \texttt{results/frm/} (artifacts) and paper-facing summaries/figures are exported to \texttt{documents/} when the FRM build flag is enabled.
 
+\subsection{Time-aware Bubble vs FRM similarity metrics}
+
+To compare whether the bubble-overlap network and FRM network encode similar systemic-risk structure over time, we compute snapshot-level similarity metrics after aligning dates.
+For each bubble snapshot date $t$, we align to the nearest prior FRM snapshot date $t' \le t$ (and drop $t$ if no such $t'$ exists).
+
+On each aligned pair $(t,t')$, we report: (i) rank similarity of node importance (Spearman correlation between eigenvector centrality ranks), (ii) top-$k$ node set overlap (Jaccard for $k \in \{5,10\}$), and (iii) edge-set similarity (Jaccard overlap between the top-$M$ directed edges by $|w|$, with $M=50$, and correlation of $|w|$ on the intersection when available).
+In \texttt{minimal} builds, FRM is intentionally restricted for runtime (e.g., first $N=20$ firms and a short date range); the bubble temporal graphs are restricted to the same firm set for a fair comparison.
+
 \subsection{TGNN forecasting (optional)}
 
 We provide a TGNN forecasting pipeline (GConvGRU/A3TGCN/EvolveGCN variants) that predicts next-step eigenvector centrality targets.

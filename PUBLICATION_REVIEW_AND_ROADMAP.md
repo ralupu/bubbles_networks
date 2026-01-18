@@ -3,9 +3,9 @@
 This document is the single source of truth for: (1) what the paper is claiming, (2) what the code actually does, (3) what a harsh reviewer will challenge, and (4) the concrete milestones to reach a publishable, reproducible state.
 
 ## Next 3 actions
-1. Decide next milestone focus: prioritize FRM networks vs TGNN forecasting (scope + compute budget).
-2. Robustness expansion: add overlap-window variants + threshold sweeps and report deltas in `documents/`.
-3. Temporal diagnostics: invariants + density/edge-count stability plots over time.
+1. Decide TGNN inclusion vs paper polish (final scope + compute budget).
+2. Robustness expansion: overlap-window variants + threshold sweeps + stability plots over time.
+3. Interpretability: narrative linking bubble vs FRM similarity (high/low regimes) to known stress periods.
 
 ## Current status (from code reality)
 
@@ -87,6 +87,7 @@ This document is the single source of truth for: (1) what the paper is claiming,
 - [x] FRM protocol implemented (rolling quantile regression, top-K incoming edges, deterministic configs)
 - [x] FRM diagnostics exported to paper (summary table, degree distributions, bubble-vs-FRM comparison)
 - [x] Minimal FRM sensitivity (window size) exported to paper
+- [x] Time-aware Bubble vs FRM similarity exported (table + time-series figure) via `make_paper --run-compare`
 - [ ] Runtime controls documented (window, threshold, parallelization, start date)
 - [ ] Diagnostics: edge density, coefficient distributions, stability across thresholds
 
@@ -130,8 +131,11 @@ python scripts/make_paper.py --mode full --run-frm --run-tgnn
 
 ### 2026-01-18
 - Added FRM protocol + runtime controls (`src/bubbles_networks/frm_network.py`, `scripts/run_frm.py`) and paper exports (`src/bubbles_networks/frm_paper.py`).
+- Added time-aware Bubble vs FRM similarity metrics (date alignment + rank/overlap/edge-set similarity) and paper assets via `make_paper --run-compare`.
 
 - make_paper report: `C:/Users/Radu/VSCode/StochasticDominanceBubbles/results/run_reports/20260117_235131Z_ro_minimal.md` (mode=minimal, dataset=ro, nodes=19, edges=246, snapshots=1873)
 
 - make_paper report: `C:/Users/Radu/VSCode/StochasticDominanceBubbles/results/run_reports/20260118_001933Z_ro_minimal.md` (mode=minimal, dataset=ro, nodes=19, edges=246, snapshots=1873)
+
+- make_paper report: `C:/Users/Radu/VSCode/StochasticDominanceBubbles/results/run_reports/20260118_113239Z_ro_minimal.md` (mode=minimal, dataset=ro, nodes=19, edges=246, snapshots=1873)
 

@@ -75,6 +75,7 @@ class MakePaperArgs:
     run_frm: bool
     run_tgnn: bool
     run_robustness: bool
+    run_compare: bool
     skip_temporal: bool
     skip_centrality: bool
     skip_pdf: bool
@@ -182,12 +183,13 @@ def build_pdf() -> int:
 
 
 def parse_args(argv: Optional[List[str]] = None) -> MakePaperArgs:
-    p = argparse.ArgumentParser(description="One-command pipeline → paper assets → PDF build.")
+    p = argparse.ArgumentParser(description="One-command pipeline -> paper assets -> PDF build.")
     p.add_argument("--mode", choices=["minimal", "full"], default="minimal")
     p.add_argument("--dataset", choices=["ro", "stoxx600"], default="ro", help="Dataset label for reporting.")
     p.add_argument("--run-frm", action="store_true", help="Run FRM module (can be slow)")
     p.add_argument("--run-tgnn", action="store_true", help="Run TGNN module (optional)")
     p.add_argument("--run-robustness", action="store_true", help="Run robustness grid for overlap network")
+    p.add_argument("--run-compare", action="store_true", help="Run time-aware bubble-vs-FRM comparison")
     p.add_argument("--start-date", type=str, default=None, help="FRM start date (YYYY-MM-DD)")
     p.add_argument("--skip-temporal", action="store_true", help="Skip temporal graph rebuild (reuse cached pkl if any)")
     p.add_argument("--skip-centrality", action="store_true", help="Skip centrality diagnostics/plots")
@@ -201,6 +203,7 @@ def parse_args(argv: Optional[List[str]] = None) -> MakePaperArgs:
         run_frm=bool(ns.run_frm),
         run_tgnn=bool(ns.run_tgnn),
         run_robustness=bool(ns.run_robustness),
+        run_compare=bool(ns.run_compare),
         skip_temporal=bool(ns.skip_temporal),
         skip_centrality=bool(ns.skip_centrality),
         skip_pdf=bool(ns.skip_pdf),
@@ -211,57 +214,88 @@ def parse_args(argv: Optional[List[str]] = None) -> MakePaperArgs:
 
 
 def _planned_io(args: MakePaperArgs) -> Dict[str, List[str]]:
-    reads = [
-        "data/ro/ResultResults_ro_bet_bubbles.xlsx",
-        "data/ro/ResultResults_ro_bet_covars.xlsx",
-        "data/ro/ResultResults_ro_bet_returns.xlsx (optional; FRM)",
-    ]
+    reads = ["data/ro/ResultResults_ro_bet_bubbles.xlsx", "data/ro/ResultResults_ro_bet_covars.xlsx"]
+    if args.run_frm:
+        reads += ["data/ro/ResultResults_ro_bet_returns.xlsx (optional; FRM)"]
+
     writes = [
         "figures/NoOfBubbles.png",
         "figures/histDuration.png",
         "figures/overlapping_bubbles.png",
         "figures/bubble_network_circular.png",
         "results/temporal_graphs.pkl",
-        "figures/centrality_dynamics.png",
-        "figures/centrality_heatmap.png",
-        "results/centrality_timeseries.csv",
         "results/metadata/data_dictionary.csv",
-        "results/network_summary.csv",
-        "results/centrality_summary.csv",
         "documents/tables/table_data_dictionary.tex",
+        "results/network_summary.csv",
         "documents/tables/table_network_summary.tex",
-        "documents/tables/table_centrality_summary.tex",
+        "documents/figures/fig_degree_distributions.png",
         "documents/figures/fig_bubble_descriptives.png",
         "documents/figures/fig_overlap_gantt.png",
         "documents/figures/fig_overlap_network.png",
-        "documents/figures/fig_degree_distributions.png",
-        "documents/figures/fig_centrality_dynamics.png",
-        "documents/figures/fig_centrality_heatmap.png",
-        "documents/figures/fig_centrality_top_nodes.png",
         "documents/figures/fig_tgnn_performance.png",
-        "results/robustness/robustness_summary.csv",
-        "documents/tables/table_robustness_summary.tex",
-        "documents/figures/fig_robustness_heatmap.png",
-        "results/frm/frm_graphs.pkl",
-        "results/frm/frm_network_summary.csv",
-        "documents/tables/table_frm_network_summary.tex",
-        "documents/figures/fig_frm_degree_distributions.png",
-        "documents/figures/fig_frm_overlap_vs_bubble.png",
-        "documents/tables/table_frm_sensitivity.tex",
-        "documents/figures/fig_frm_sensitivity_heatmap.png",
-        "documents/build/main.pdf",
     ]
+
+    if not args.skip_centrality:
+        writes += [
+            "figures/centrality_dynamics.png",
+            "figures/centrality_heatmap.png",
+            "results/centrality_timeseries.csv",
+            "results/centrality_summary.csv",
+            "documents/tables/table_centrality_summary.tex",
+            "documents/figures/fig_centrality_dynamics.png",
+            "documents/figures/fig_centrality_heatmap.png",
+            "documents/figures/fig_centrality_top_nodes.png",
+        ]
+
+    if args.run_robustness:
+        writes += [
+            "results/robustness/robustness_summary.csv",
+            "documents/tables/table_robustness_summary.tex",
+            "documents/figures/fig_robustness_heatmap.png",
+        ]
+
+    if args.run_frm:
+        writes += [
+            "results/frm/frm_graphs.pkl",
+            "results/frm/frm_network_summary.csv",
+            "documents/tables/table_frm_network_summary.tex",
+            "documents/figures/fig_frm_degree_distributions.png",
+            "documents/figures/fig_frm_overlap_vs_bubble.png",
+            "documents/tables/table_frm_sensitivity.tex",
+            "documents/figures/fig_frm_sensitivity_heatmap.png",
+        ]
+
+    if args.run_compare:
+        reads += [
+            "results/temporal_graphs.pkl (for comparison)",
+            "results/frm/frm_graphs.pkl (for comparison)",
+            "results/frm/frm_firms.json (for comparison)",
+        ]
+        writes += [
+            "results/compare/bubble_vs_frm_similarity_timeseries.csv",
+            "documents/tables/table_bubble_vs_frm_similarity.tex",
+            "documents/figures/fig_bubble_vs_frm_similarity_timeseries.png",
+        ]
+
     if args.run_tgnn:
         writes += ["figures/tgnn_performance.png"]
+
     if args.report:
         writes += ["results/run_reports/<timestamp>_<dataset>_<mode>.md"]
+
+    if not args.skip_pdf:
+        writes += ["documents/build/main.pdf"]
+
     return {"reads": reads, "writes": writes}
 
 
 def _print_dry_run(args: MakePaperArgs) -> None:
     io = _planned_io(args)
     print("[make_paper] DRY RUN")
-    print(f"[make_paper] mode={args.mode} dataset={args.dataset} run_frm={args.run_frm} run_tgnn={args.run_tgnn}")
+    print(
+        f"[make_paper] mode={args.mode} dataset={args.dataset} "
+        f"run_frm={args.run_frm} run_tgnn={args.run_tgnn} run_compare={args.run_compare}"
+    )
     print(
         f"[make_paper] run_robustness={args.run_robustness} skip_temporal={args.skip_temporal} skip_centrality={args.skip_centrality} "
         f"skip_pdf={args.skip_pdf} report={args.report}"
@@ -313,6 +347,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("[make_paper] results/temporal_graphs.pkl missing; rebuilding temporal graphs (first run may be slower).")
         skip_temporal = False
     if args.mode == "full":
+        skip_temporal = False
+    if args.run_compare and not results_temporal.exists():
         skip_temporal = False
 
     tgnn_args: Optional[List[str]] = None
@@ -554,6 +590,114 @@ def main(argv: Optional[List[str]] = None) -> int:
             "documents/figures/fig_frm_sensitivity_heatmap.png",
         ]
 
+    compare_stats: Dict[str, str] = {}
+    compare_params: Dict[str, str] = {}
+    if args.run_compare:
+        import json
+        import pickle
+
+        import pandas as pd
+
+        from bubbles_networks.network_similarity import (
+            compute_bubble_vs_frm_similarity_timeseries,
+            plot_similarity_timeseries,
+            restrict_temporal_graphs_to_firms,
+            write_similarity_summary_table,
+        )
+
+        temporal_pkl = repo / "results" / "temporal_graphs.pkl"
+        frm_pkl = repo / "results" / "frm" / "frm_graphs.pkl"
+        frm_firms_json = repo / "results" / "frm" / "frm_firms.json"
+        frm_cfg_json = repo / "results" / "frm" / "frm_config.json"
+
+        if not temporal_pkl.exists():
+            raise RuntimeError("[make_paper] Missing results/temporal_graphs.pkl (run without --skip-temporal).")
+        if not frm_pkl.exists():
+            raise RuntimeError("[make_paper] Missing results/frm/frm_graphs.pkl (run with --run-frm).")
+        if not frm_firms_json.exists():
+            raise RuntimeError("[make_paper] Missing results/frm/frm_firms.json (expected from FRM run).")
+
+        with open(temporal_pkl, "rb") as f:
+            bubble_graphs = pickle.load(f)
+        with open(frm_pkl, "rb") as f:
+            frm_graphs = pickle.load(f)
+        with open(frm_firms_json, "r", encoding="utf-8") as f:
+            frm_firms = [str(x) for x in json.load(f)]
+
+        bubble_df = pd.read_excel(ro_spec.bubble_file, sheet_name=ro_spec.bubble_sheet)
+        if "Firm" not in bubble_df.columns:
+            raise RuntimeError("[make_paper] Missing column Firm in bubble sheet (Breakdowns).")
+        bubble_firms = [str(x) for x in sorted(bubble_df["Firm"].dropna().unique())]
+
+        restrict_bubble = False
+        if args.mode == "minimal" and frm_cfg_json.exists():
+            try:
+                with open(frm_cfg_json, "r", encoding="utf-8") as f:
+                    frm_cfg = json.load(f)
+                restrict_bubble = frm_cfg.get("max_firms") is not None
+            except Exception:
+                restrict_bubble = False
+
+        if restrict_bubble:
+            bubble_graphs, bubble_firms_used = restrict_temporal_graphs_to_firms(
+                bubble_graphs, bubble_firms, keep_firms=frm_firms
+            )
+            bubble_firms = bubble_firms_used
+            if len(bubble_firms) < 2:
+                raise RuntimeError("[make_paper] Too few common firms between bubble and FRM for comparison.")
+            compare_params["compare_firm_restriction"] = "bubble restricted to FRM firm set (minimal build fairness)"
+        else:
+            compare_params["compare_firm_restriction"] = "none"
+
+        compare_params.update(
+            {
+                "compare_align_method": "nearest_prior",
+                "compare_topk": "5,10",
+                "compare_topm_edges": "50",
+                "compare_bubble_firms": str(len(bubble_firms)),
+                "compare_frm_firms": str(len(frm_firms)),
+            }
+        )
+
+        ts_df, align_summary = compute_bubble_vs_frm_similarity_timeseries(
+            bubble_graphs=bubble_graphs,
+            bubble_firms=bubble_firms,
+            frm_graphs=frm_graphs,
+            frm_firms=frm_firms,
+            align_method="nearest_prior",
+            topk_values=(5, 10),
+            topm_edges=50,
+        )
+
+        out_csv = repo / "results" / "compare" / "bubble_vs_frm_similarity_timeseries.csv"
+        out_csv.parent.mkdir(parents=True, exist_ok=True)
+        ts_df.to_csv(out_csv, index=False)
+
+        out_tex = repo / "documents" / "tables" / "table_bubble_vs_frm_similarity.tex"
+        out_fig = repo / "documents" / "figures" / "fig_bubble_vs_frm_similarity_timeseries.png"
+        write_similarity_summary_table(timeseries_df=ts_df, out_tex=str(out_tex))
+        plot_similarity_timeseries(timeseries_df=ts_df, out_fig=str(out_fig))
+        _require_text_contains(out_tex, "\\label{tab:bubble_vs_frm_similarity}")
+
+        outputs += [
+            "results/compare/bubble_vs_frm_similarity_timeseries.csv",
+            "documents/tables/table_bubble_vs_frm_similarity.tex",
+            "documents/figures/fig_bubble_vs_frm_similarity_timeseries.png",
+        ]
+
+        compare_stats = {
+            "compare_aligned_pairs": str(int(align_summary.aligned_pairs)),
+            "compare_exact_matches": str(int(align_summary.exact_matches)),
+            "compare_shifted_matches": str(int(align_summary.shifted_matches)),
+            "compare_max_shift_days": str(int(align_summary.max_shift_days)),
+            "compare_rows": str(int(len(ts_df))),
+        }
+        if not ts_df.empty and "date_bubble" in ts_df.columns:
+            dates = pd.to_datetime(ts_df["date_bubble"], errors="coerce").dropna()
+            if len(dates):
+                compare_stats["compare_date_start"] = str(dates.min().date())
+                compare_stats["compare_date_end"] = str(dates.max().date())
+
     outputs += export_paper_assets(skip_centrality=args.skip_centrality, run_tgnn=args.run_tgnn)
 
     if not args.skip_pdf:
@@ -577,12 +721,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             "run_frm": str(args.run_frm),
             "run_tgnn": str(args.run_tgnn),
             "run_robustness": str(args.run_robustness),
+            "run_compare": str(args.run_compare),
             "skip_temporal": str(skip_temporal),
             "skip_centrality": str(args.skip_centrality),
             "skip_pdf": str(args.skip_pdf),
             "start_date": str(args.start_date or ""),
         }
         params.update(frm_params)
+        params.update(compare_params)
 
         env = {
             "os": platform.platform(),
@@ -609,6 +755,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             stats["robustness_runs"] = "6"
         if args.run_frm:
             stats.update(frm_stats)
+        if args.run_compare:
+            stats.update(compare_stats)
 
         write_run_report(
             str(report_path),
