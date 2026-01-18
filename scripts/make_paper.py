@@ -72,6 +72,7 @@ def _compose_two_up(top: Path, bottom: Path, out_path: Path) -> bool:
 class MakePaperArgs:
     mode: str
     dataset: str
+    run_descriptives: bool
     run_frm: bool
     run_tgnn: bool
     run_robustness: bool
@@ -186,6 +187,12 @@ def parse_args(argv: Optional[List[str]] = None) -> MakePaperArgs:
     p = argparse.ArgumentParser(description="One-command pipeline -> paper assets -> PDF build.")
     p.add_argument("--mode", choices=["minimal", "full"], default="minimal")
     p.add_argument("--dataset", choices=["ro", "stoxx600"], default="ro", help="Dataset label for reporting.")
+    p.add_argument(
+        "--run-descriptives",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Generate RO descriptive tables/figure for the paper.",
+    )
     p.add_argument("--run-frm", action="store_true", help="Run FRM module (can be slow)")
     p.add_argument("--run-tgnn", action="store_true", help="Run TGNN module (optional)")
     p.add_argument("--run-robustness", action="store_true", help="Run robustness grid for overlap network")
@@ -200,6 +207,7 @@ def parse_args(argv: Optional[List[str]] = None) -> MakePaperArgs:
     return MakePaperArgs(
         mode=ns.mode,
         dataset=ns.dataset,
+        run_descriptives=bool(ns.run_descriptives),
         run_frm=bool(ns.run_frm),
         run_tgnn=bool(ns.run_tgnn),
         run_robustness=bool(ns.run_robustness),
@@ -215,6 +223,8 @@ def parse_args(argv: Optional[List[str]] = None) -> MakePaperArgs:
 
 def _planned_io(args: MakePaperArgs) -> Dict[str, List[str]]:
     reads = ["data/ro/ResultResults_ro_bet_bubbles.xlsx", "data/ro/ResultResults_ro_bet_covars.xlsx"]
+    if args.run_descriptives:
+        reads += ["data/ro/ResultResults_ro_bet_returns.xlsx (for descriptives)"]
     if args.run_frm:
         reads += ["data/ro/ResultResults_ro_bet_returns.xlsx (optional; FRM)"]
 
@@ -234,6 +244,13 @@ def _planned_io(args: MakePaperArgs) -> Dict[str, List[str]]:
         "documents/figures/fig_overlap_network.png",
         "documents/figures/fig_tgnn_performance.png",
     ]
+
+    if args.run_descriptives:
+        writes += [
+            "documents/tables/table_sample_overview.tex",
+            "documents/tables/table_bubble_heterogeneity.tex",
+            "documents/figures/fig_data_descriptives.png",
+        ]
 
     if not args.skip_centrality:
         writes += [
@@ -294,7 +311,7 @@ def _print_dry_run(args: MakePaperArgs) -> None:
     print("[make_paper] DRY RUN")
     print(
         f"[make_paper] mode={args.mode} dataset={args.dataset} "
-        f"run_frm={args.run_frm} run_tgnn={args.run_tgnn} run_compare={args.run_compare}"
+        f"run_descriptives={args.run_descriptives} run_frm={args.run_frm} run_tgnn={args.run_tgnn} run_compare={args.run_compare}"
     )
     print(
         f"[make_paper] run_robustness={args.run_robustness} skip_temporal={args.skip_temporal} skip_centrality={args.skip_centrality} "
@@ -698,6 +715,46 @@ def main(argv: Optional[List[str]] = None) -> int:
                 compare_stats["compare_date_start"] = str(dates.min().date())
                 compare_stats["compare_date_end"] = str(dates.max().date())
 
+    descriptives_stats: Dict[str, str] = {}
+    descriptives_params: Dict[str, str] = {}
+    if args.run_descriptives:
+        prefer_firms = None
+        if args.run_compare:
+            prefer_firms = bubble_firms
+        elif args.run_frm:
+            try:
+                import json
+
+                frm_firms_json = repo / "results" / "frm" / "frm_firms.json"
+                if frm_firms_json.exists():
+                    with open(frm_firms_json, "r", encoding="utf-8") as f:
+                        prefer_firms = [str(x) for x in json.load(f)]
+            except Exception:
+                prefer_firms = None
+
+        from bubbles_networks.data_descriptives import DescriptivesOutputs, export_ro_descriptives_for_paper
+
+        created, d_stats = export_ro_descriptives_for_paper(
+            bubble_file=ro_spec.bubble_file,
+            bubble_sheet=ro_spec.bubble_sheet,
+            date_sheet=ro_spec.date_sheet,
+            returns_file=str(ro_spec.returns_file or "data/ro/ResultResults_ro_bet_returns.xlsx"),
+            returns_sheet=None,
+            prefer_firms=prefer_firms,
+            outputs=DescriptivesOutputs(
+                table_sample_overview_tex=str(repo / "documents" / "tables" / "table_sample_overview.tex"),
+                table_bubble_heterogeneity_tex=str(repo / "documents" / "tables" / "table_bubble_heterogeneity.tex"),
+                fig_data_descriptives_png=str(repo / "documents" / "figures" / "fig_data_descriptives.png"),
+            ),
+        )
+        outputs += [os.path.relpath(p, str(repo)).replace("\\", "/") for p in created]
+        descriptives_params = {
+            "descriptives_prefer_firms": (
+                "compare_firm_universe" if args.run_compare and prefer_firms else ("frm_firm_universe" if prefer_firms else "none")
+            )
+        }
+        descriptives_stats = dict(d_stats)
+
     outputs += export_paper_assets(skip_centrality=args.skip_centrality, run_tgnn=args.run_tgnn)
 
     if not args.skip_pdf:
@@ -722,6 +779,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             "run_tgnn": str(args.run_tgnn),
             "run_robustness": str(args.run_robustness),
             "run_compare": str(args.run_compare),
+            "run_descriptives": str(args.run_descriptives),
             "skip_temporal": str(skip_temporal),
             "skip_centrality": str(args.skip_centrality),
             "skip_pdf": str(args.skip_pdf),
@@ -729,6 +787,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         }
         params.update(frm_params)
         params.update(compare_params)
+        params.update(descriptives_params)
 
         env = {
             "os": platform.platform(),
@@ -757,6 +816,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             stats.update(frm_stats)
         if args.run_compare:
             stats.update(compare_stats)
+        if args.run_descriptives:
+            stats.update(descriptives_stats)
 
         write_run_report(
             str(report_path),

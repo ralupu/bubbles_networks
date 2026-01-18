@@ -1,5 +1,8 @@
 /build/*
 !/build/.gitkeep
+main.pdf
+*.spl
+/paper-writing/
 *.aux
 *.bbl
 *.blg

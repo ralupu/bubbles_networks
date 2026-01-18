@@ -139,3 +139,5 @@ python scripts/make_paper.py --mode full --run-frm --run-tgnn
 
 - make_paper report: `C:/Users/Radu/VSCode/StochasticDominanceBubbles/results/run_reports/20260118_113239Z_ro_minimal.md` (mode=minimal, dataset=ro, nodes=19, edges=246, snapshots=1873)
 
+- make_paper report: `C:/Users/Radu/VSCode/StochasticDominanceBubbles/results/run_reports/20260118_142158Z_ro_minimal.md` (mode=minimal, dataset=ro, nodes=19, edges=246, snapshots=1873)
+
